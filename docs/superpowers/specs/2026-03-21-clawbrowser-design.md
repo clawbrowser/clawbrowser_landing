@@ -508,18 +508,35 @@ clawbrowser --fingerprint=fp_abc123 --new
   │     → Sandbox modified for read access
   ├─ 5. Proxy setup from profile credentials
   ├─ 6. Normal Chromium startup
-  ├─ 7. Fingerprint verification
+  ├─ 7. Verification (proxy + fingerprint)
   │     → Browser opens internal clawbrowser://verify page
-  │     → Page runs JS to read all fingerprint surfaces
-  │     → Compares actual values against profile
+  │     → Built-in HTML+JavaScript page performs two checks:
+  │     │
+  │     │  7a. Proxy verification:
+  │     │     → Page calls backend API POST /v1/proxy/verify
+  │     │       with proxy credentials and expected country/city
+  │     │     → Verifies proxy IP matches expected geo
+  │     │
+  │     │  7b. Fingerprint verification:
+  │     │     → Page runs JS to read all fingerprint surfaces:
+  │     │       Canvas, WebGL, AudioContext, navigator.*,
+  │     │       screen.*, timezone, fonts, etc.
+  │     │     → Compares actual values against profile
   │     │
   │     ├─ ALL MATCH →
+  │     │   [clawbrowser] Proxy verified
   │     │   [clawbrowser] Fingerprint verified
   │     │   Enable CDP/automation
   │     │   [clawbrowser] CDP listening on ws://127.0.0.1:9222
   │     │   [clawbrowser] Browser ready
   │     │
-  │     └─ MISMATCH →
+  │     ├─ PROXY MISMATCH →
+  │     │   [clawbrowser] Proxy verification FAILED
+  │     │   Show error page in browser with details
+  │     │   CDP not enabled
+  │     │   Exit with error code 1
+  │     │
+  │     └─ FINGERPRINT MISMATCH →
   │        [clawbrowser] Fingerprint verification FAILED
   │        [clawbrowser] Mismatch: canvas, webgl_renderer
   │        Show error page in browser with details
