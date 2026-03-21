@@ -205,8 +205,8 @@ struct StartupConfig {
   bool has_fingerprint = false;
 };
 
-// Parse clawbrowser-specific CLI flags.
-StartupConfig ParseFlags(int argc, const char* argv[]);
+// Parse clawbrowser-specific CLI flags from Chromium's CommandLine.
+StartupConfig ParseFlags(const base::CommandLine& command_line);
 
 // Initialize clawbrowser: load profile, create shared memory, set up proxy.
 // Returns 0 on success, -1 on error.
@@ -252,25 +252,17 @@ namespace {
   bool g_initialized = false;
 }
 
-StartupConfig ParseFlags(int argc, const char* argv[]) {
+StartupConfig ParseFlags(const base::CommandLine& cmd) {
   StartupConfig config;
-  for (int i = 1; i < argc; ++i) {
-    std::string arg(argv[i]);
-    if (arg.find("--fingerprint=") == 0) {
-      config.profile_id = arg.substr(14);
-      config.has_fingerprint = true;
-    } else if (arg == "--regenerate") {
-      config.regenerate = true;
-    } else if (arg == "--list") {
-      config.list_profiles = true;
-    } else if (arg == "--skip-verify") {
-      config.skip_verify = true;
-    } else if (arg == "--output=json") {
-      config.json_output = true;
-    } else if (arg == "--verbose") {
-      config.verbose = true;
-    }
+  if (cmd.HasSwitch("fingerprint")) {
+    config.profile_id = cmd.GetSwitchValueASCII("fingerprint");
+    config.has_fingerprint = true;
   }
+  config.regenerate = cmd.HasSwitch("regenerate");
+  config.list_profiles = cmd.HasSwitch("list");
+  config.skip_verify = cmd.HasSwitch("skip-verify");
+  config.json_output = cmd.GetSwitchValueASCII("output") == "json";
+  config.verbose = cmd.HasSwitch("verbose");
   return config;
 }
 
@@ -361,7 +353,7 @@ In `chrome/browser/chrome_browser_main.cc`, add early in `ChromeBrowserMainParts
 // Near the start of PreMainMessageLoopRunImpl():
 {
   auto config = clawbrowser::ParseFlags(
-      base::CommandLine::ForCurrentProcess()->GetArgs());
+      *base::CommandLine::ForCurrentProcess());
   if (clawbrowser::Initialize(config) != 0) {
     return 1;  // Exit on initialization failure
   }
@@ -460,6 +452,7 @@ In the renderer process, on startup, read the shared memory using the `--clawbro
 // Global pointer to shared fingerprint data (read-only)
 static const ShmFingerprint* g_claw_fingerprint = nullptr;
 
+// Call this from RenderThreadImpl::Init() to ensure it runs before any JS executes.
 void InitClawbrowserFingerprint() {
   auto* cmd = base::CommandLine::ForCurrentProcess();
   if (cmd->HasSwitch("clawbrowser-shm-name")) {
@@ -467,6 +460,9 @@ void InitClawbrowserFingerprint() {
     g_claw_fingerprint = claw_read_shm(shm_name.c_str());
   }
 }
+
+// Hook into content/renderer/render_thread_impl.cc, in RenderThreadImpl::Init():
+//   InitClawbrowserFingerprint();
 ```
 
 - [ ] **Step 2: Override navigator properties**
@@ -682,12 +678,12 @@ DOMRect* Element::getBoundingClientRect() {
   DOMRect* rect = original_getBoundingClientRect();
   if (g_claw_fingerprint) {
     auto* noise_gen = claw_noise_new(g_claw_fingerprint->client_rects_seed);
-    // Use element's hash as index for deterministic per-element noise
-    uint64_t elem_hash = reinterpret_cast<uint64_t>(this) & 0xFFFF;
-    rect->setX(rect->x() + claw_noise_client_rect(noise_gen, elem_hash));
-    rect->setY(rect->y() + claw_noise_client_rect(noise_gen, elem_hash + 1));
-    rect->setWidth(rect->width() + claw_noise_client_rect(noise_gen, elem_hash + 2));
-    rect->setHeight(rect->height() + claw_noise_client_rect(noise_gen, elem_hash + 3));
+    // Use element's DOM tree index for deterministic, stable noise across sessions
+    uint64_t elem_index = GetDomTreeIndex(this);  // stable tree position index
+    rect->setX(rect->x() + claw_noise_client_rect(noise_gen, elem_index));
+    rect->setY(rect->y() + claw_noise_client_rect(noise_gen, elem_index + 1));
+    rect->setWidth(rect->width() + claw_noise_client_rect(noise_gen, elem_index + 2));
+    rect->setHeight(rect->height() + claw_noise_client_rect(noise_gen, elem_index + 3));
     claw_noise_free(noise_gen);
   }
   return rect;

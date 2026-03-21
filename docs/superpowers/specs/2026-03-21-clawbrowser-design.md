@@ -580,7 +580,7 @@ With `--output=json`:
 
 - No API key in env → `[clawbrowser] Error: CLAWBROWSER_API_KEY not set`
 - Backend API unreachable (new profile) → `[clawbrowser] Error: cannot reach fingerprint API`
-- Profile not found without --new → `[clawbrowser] Error: profile fp_abc123 not found, use --new to create`
+- Profile not found and API unreachable → `[clawbrowser] Error: profile fp_abc123 not found and cannot reach API to generate`
 - Proxy connection failed → `[clawbrowser] Error: proxy connection failed`
 - Fingerprint verification failed → `[clawbrowser] Error: fingerprint verification failed` + details
 - Out of credits → `[clawbrowser] Error: out of credits, please top up at clawbrowser.ai`

@@ -459,11 +459,41 @@ impl ProfileManager {
 
 fn chrono_now() -> String {
     // Simple ISO 8601 timestamp without chrono dependency
-    use std::time::SystemTime;
-    let duration = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap_or_default();
-    format!("{}Z", duration.as_secs())
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs();
+    // Convert epoch seconds to ISO 8601 datetime
+    let days = secs / 86400;
+    let time_secs = secs % 86400;
+    let hours = time_secs / 3600;
+    let minutes = (time_secs % 3600) / 60;
+    let seconds = time_secs % 60;
+    // Simple date calculation (good enough for timestamps, not a full calendar)
+    let (year, month, day) = epoch_days_to_date(days);
+    format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z", year, month, day, hours, minutes, seconds)
+}
+
+fn epoch_days_to_date(days: u64) -> (u64, u64, u64) {
+    // Simplified date calculation from epoch days
+    let mut y = 1970;
+    let mut remaining = days;
+    loop {
+        let days_in_year = if y % 4 == 0 && (y % 100 != 0 || y % 400 == 0) { 366 } else { 365 };
+        if remaining < days_in_year { break; }
+        remaining -= days_in_year;
+        y += 1;
+    }
+    let leap = y % 4 == 0 && (y % 100 != 0 || y % 400 == 0);
+    let month_days = [31, if leap { 29 } else { 28 }, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31];
+    let mut m = 0;
+    for md in &month_days {
+        if remaining < *md as u64 { break; }
+        remaining -= *md as u64;
+        m += 1;
+    }
+    (y, m + 1, remaining + 1)
 }
 ```
 
@@ -761,27 +791,36 @@ impl ShmManager {
 
     pub fn unlink(&mut self) {
         unsafe {
-            let size = std::mem::size_of::<ShmFingerprint>();
-            libc::munmap(self.ptr as *mut libc::c_void, size);
-            libc::close(self.fd);
-            let c_name = std::ffi::CString::new(self.shm_name.as_str()).unwrap();
-            libc::shm_unlink(c_name.as_ptr());
-            self.fd = -1;
+            if self.fd >= 0 {
+                let size = std::mem::size_of::<ShmFingerprint>();
+                libc::munmap(self.ptr as *mut libc::c_void, size);
+                libc::close(self.fd);
+                let c_name = std::ffi::CString::new(self.shm_name.as_str()).unwrap();
+                libc::shm_unlink(c_name.as_ptr());
+                self.fd = -1;
+                self.ptr = std::ptr::null_mut();
+            }
         }
     }
 
     pub fn fd(&self) -> i32 {
         self.fd
     }
+
+    pub fn as_ptr(&self) -> *const ShmFingerprint {
+        self.ptr as *const ShmFingerprint
+    }
 }
 
 impl Drop for ShmManager {
     fn drop(&mut self) {
         unsafe {
-            if self.fd >= 0 {
+            if self.fd >= 0 && !self.ptr.is_null() {
                 let size = std::mem::size_of::<ShmFingerprint>();
                 libc::munmap(self.ptr as *mut libc::c_void, size);
                 libc::close(self.fd);
+                self.fd = -1;
+                self.ptr = std::ptr::null_mut();
             }
         }
     }
@@ -1140,11 +1179,12 @@ pub mod config;
 use std::ffi::{CStr, CString};
 use std::os::raw::c_char;
 use std::path::PathBuf;
+use std::sync::Mutex;
 
 use types::ShmFingerprint;
 
-static mut GLOBAL_SHM: Option<shm::ShmManager> = None;
-static mut GLOBAL_PROFILE: Option<types::ProfileOnDisk> = None;
+static GLOBAL_SHM: Mutex<Option<shm::ShmManager>> = Mutex::new(None);
+static GLOBAL_PROFILE: Mutex<Option<types::ProfileOnDisk>> = Mutex::new(None);
 
 /// Initialize libclaw: load profile, create shared memory, write fingerprint data.
 /// Returns 0 on success, -1 on error.
@@ -1237,10 +1277,8 @@ pub extern "C" fn claw_init(
     }
 
     // Store globally for later access
-    unsafe {
-        GLOBAL_SHM = Some(shm_mgr);
-        GLOBAL_PROFILE = Some(profile);
-    }
+    *GLOBAL_SHM.lock().unwrap() = Some(shm_mgr);
+    *GLOBAL_PROFILE.lock().unwrap() = Some(profile);
 
     eprintln!("[clawbrowser] Profile {} loaded", profile_id);
     0
@@ -1250,11 +1288,9 @@ pub extern "C" fn claw_init(
 /// Returns -1 if not initialized.
 #[no_mangle]
 pub extern "C" fn claw_get_shm_fd() -> i32 {
-    unsafe {
-        match &GLOBAL_SHM {
-            Some(shm) => shm.fd(),
-            None => -1,
-        }
+    match GLOBAL_SHM.lock().unwrap().as_ref() {
+        Some(shm) => shm.fd(),
+        None => -1,
     }
 }
 
@@ -1269,11 +1305,12 @@ pub extern "C" fn claw_read_shm(shm_name: *const c_char) -> *const ShmFingerprin
             if !mgr.validate() {
                 return std::ptr::null();
             }
-            // Leak the manager so the mmap stays valid
-            let boxed = Box::new(mgr);
-            let ptr = boxed.ptr;
-            std::mem::forget(boxed);
-            ptr as *const ShmFingerprint
+            // Get a raw pointer to the mapped memory via a public accessor
+            let ptr = mgr.as_ptr();
+            // Leak the manager so the mmap stays valid for the process lifetime.
+            // This is intentional — child processes hold the mapping until exit.
+            std::mem::forget(mgr);
+            ptr
         }
         Err(_) => std::ptr::null(),
     }
@@ -1282,12 +1319,10 @@ pub extern "C" fn claw_read_shm(shm_name: *const c_char) -> *const ShmFingerprin
 /// Cleanup: unlink shared memory on shutdown.
 #[no_mangle]
 pub extern "C" fn claw_shutdown() {
-    unsafe {
-        if let Some(mut shm) = GLOBAL_SHM.take() {
-            shm.unlink();
-        }
-        GLOBAL_PROFILE = None;
+    if let Some(mut shm) = GLOBAL_SHM.lock().unwrap().take() {
+        shm.unlink();
     }
+    *GLOBAL_PROFILE.lock().unwrap() = None;
 }
 
 /// Create a noise generator for the given seed. Returns an opaque pointer.

@@ -28,8 +28,7 @@ backend/
 │   ├── fingerprint/
 │   │   ├── generator.go            # Fingerprint generation logic
 │   │   ├── generator_test.go       # Generator tests
-│   │   ├── datasets.go             # Curated real-world browser config datasets
-│   │   └── consistency.go          # Internal consistency validation (UA ↔ platform ↔ fonts ↔ WebGL)
+│   │   └── datasets.go             # Curated real-world browser config datasets (consistency via presets)
 │   ├── proxy/
 │   │   ├── verifier.go             # Proxy geo verification logic
 │   │   └── verifier_test.go        # Verifier tests
@@ -144,7 +143,7 @@ type ProxyConfig struct {
 	City           string `json:"city,omitempty"`
 	ConnectionType string `json:"connection_type,omitempty"`
 	Host           string `json:"host,omitempty"`
-	Port           int    `json:"port,omitempty"`
+	Port           uint16 `json:"port,omitempty"`
 	Username       string `json:"username,omitempty"`
 	Password       string `json:"password,omitempty"`
 }
@@ -157,7 +156,7 @@ type VerifyProxyRequest struct {
 
 type ProxyEndpoint struct {
 	Host     string `json:"host"`
-	Port     int    `json:"port"`
+	Port     uint16 `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -362,7 +361,6 @@ package fingerprint
 
 // MacOSPreset holds a consistent set of browser properties for a macOS Chrome config.
 type MacOSPreset struct {
-	UserAgents   []string
 	Platform     string
 	WebGLVendor  string
 	WebGLRenderers []string
@@ -610,7 +608,7 @@ func TestGenerate_TimezoneMatchesCountry(t *testing.T) {
 	req := model.GenerateRequest{
 		Platform: "macos",
 		Browser:  "chrome",
-		Country:  "JP",
+		Country:  "US",
 	}
 
 	resp, err := gen.Generate(req)
@@ -618,8 +616,16 @@ func TestGenerate_TimezoneMatchesCountry(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	if resp.Fingerprint.Timezone != "Asia/Tokyo" {
-		t.Errorf("expected Asia/Tokyo for JP, got %s", resp.Fingerprint.Timezone)
+	validTZs := TimezonesByCountry["US"]
+	found := false
+	for _, tz := range validTZs {
+		if resp.Fingerprint.Timezone == tz {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("timezone %s not in valid US timezones %v", resp.Fingerprint.Timezone, validTZs)
 	}
 }
 
@@ -1254,16 +1260,25 @@ func main() {
 	}
 
 	gen := fingerprint.NewGenerator()
-	// TODO: replace with real IP lookup implementation
-	ver := proxy.NewVerifier(proxy.MockIPLookup{})
+	// TODO: replace MockIPLookup with real IP lookup implementation (e.g., ip-api.com via proxy)
+	ver := proxy.NewVerifier(proxy.MockIPLookup{Country: "US", City: "New York", IPv4: "0.0.0.0"})
 
 	handler := api.NewHandler(gen, ver)
 
 	r := chi.NewRouter()
-	r.Use(api.AuthMiddleware(apiKey))
 
-	r.Post("/v1/fingerprints/generate", handler.HandleGenerate)
-	r.Post("/v1/proxy/verify", handler.HandleVerifyProxy)
+	// Health check — no auth required
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
+	// Authenticated API routes
+	r.Group(func(r chi.Router) {
+		r.Use(api.AuthMiddleware(apiKey))
+		r.Post("/v1/fingerprints/generate", handler.HandleGenerate)
+		r.Post("/v1/proxy/verify", handler.HandleVerifyProxy)
+	})
 
 	log.Printf("Starting clawbrowser API on :%s", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%s", port), r))
