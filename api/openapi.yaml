@@ -613,7 +613,7 @@ components:
 
     Customer:
       type: object
-      required: [id, email, created_at]
+      required: [id, email, status, created_at]
       properties:
         id:
           type: string
@@ -623,6 +623,10 @@ components:
           format: email
         name:
           type: string
+        status:
+          type: string
+          enum: [provisioning, active, provisioning_failed]
+          description: Account provisioning status
         created_at:
           type: string
           format: date-time
