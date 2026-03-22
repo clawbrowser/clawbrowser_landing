@@ -1,0 +1,341 @@
+# Clawbrowser Backend — Design Specification
+
+## Overview
+
+Backend system for clawbrowser.ai: a Go monolith API that generates browser fingerprints with proxy credentials, manages customers, and integrates with external services for auth, billing, API key management, and proxy provisioning.
+
+**Repos:**
+- `clawbrowser-api` — Go backend (this spec)
+- `clawbrowser-dashboard` — Next.js frontend (separate spec)
+
+**Master spec:** `docs/superpowers/specs/2026-03-21-clawbrowser-design.md`
+**API contract:** `api/openapi.yaml`
+
+## Technology Stack
+
+| Component | Technology | Deployment |
+|-----------|-----------|------------|
+| API | Go 1.22+, Chi router | Docker → EKS |
+| Database | PostgreSQL | AWS RDS |
+| Cache | Redis | AWS ElastiCache |
+| User auth | Auth0 | Managed SaaS |
+| API key management | Unkey | Self-hosted → EKS |
+| Billing & metering | UniBee | Self-hosted → EKS |
+| Proxy provider | Nodemaven | External API |
+| Transactional email | AWS SES | Managed |
+| Config | Viper (YAML + env var overrides) | — |
+
+## Architecture
+
+```
+┌─────────────┐     ┌─────────────┐
+│  clawbrowser │     │   Next.js   │
+│   (browser)  │     │  Dashboard  │
+└──────┬───────┘     └──────┬──────┘
+       │                    │
+       │  Bearer API key    │  Auth0 JWT
+       │  (Unkey-issued)    │
+       ▼                    ▼
+┌──────────────────────────────────┐
+│         Go API (monolith)        │
+│                                  │
+│  ┌───────────┐  ┌─────────────┐  │
+│  │Fingerprint│  │  Dashboard  │  │
+│  │  Routes   │  │   Routes    │  │
+│  └─────┬─────┘  └──────┬──────┘  │
+│        │               │         │
+│  ┌─────┴───────────────┴──────┐  │
+│  │      Service Layer         │  │
+│  └─────┬──┬──┬──┬──┬──┬──────┘  │
+│        │  │  │  │  │  │         │
+└────────┼──┼──┼──┼──┼──┼─────────┘
+         │  │  │  │  │  │
+         ▼  ▼  ▼  ▼  ▼  ▼
+       PG  Redis Unkey UniBee Nodemaven Auth0
+```
+
+### Authentication Paths
+
+- **Browser clients** (clawbrowser binary) → Bearer token verified against Unkey (<40ms)
+- **Dashboard** (Next.js) → Auth0 JWT verified against Auth0 JWKS
+- **Webhooks** (Auth0, UniBee) → signature verification
+
+## API Design
+
+### Browser-facing (Unkey API key auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/v1/fingerprints/generate` | Generate fingerprint + proxy credentials |
+| POST | `/v1/proxy/verify` | Verify proxy geo matches expectations |
+
+### Dashboard-facing (Auth0 JWT auth)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/v1/me` | Get current customer profile |
+| PUT | `/v1/me` | Update customer profile |
+| POST | `/v1/api-keys` | Create new API key (→ Unkey) |
+| GET | `/v1/api-keys` | List customer's API keys |
+| DELETE | `/v1/api-keys/{id}` | Revoke API key (→ Unkey) |
+| POST | `/v1/api-keys/{id}/rotate` | Rotate API key (→ Unkey) |
+| GET | `/v1/usage` | Get usage stats (→ Unkey) |
+| GET | `/v1/usage/history` | Usage over time for charts (→ Unkey) |
+| GET | `/v1/billing/subscription` | Current plan & status (→ UniBee) |
+| POST | `/v1/billing/portal` | Get UniBee portal URL for plan management |
+
+### Webhook endpoints (signature verification)
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/v1/webhooks/auth0` | New user signup → create customer + Nodemaven sub-client |
+| POST | `/v1/webhooks/unibee` | Payment events, subscription changes |
+
+Full OpenAPI specification: [`api/openapi.yaml`](../../../api/openapi.yaml)
+
+## Data Model (PostgreSQL)
+
+```sql
+CREATE TABLE customers (
+    id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth0_id                  TEXT UNIQUE NOT NULL,
+    email                     TEXT UNIQUE NOT NULL,
+    name                      TEXT,
+    nodemaven_sub_client_id   TEXT UNIQUE,
+    nodemaven_credentials     JSONB,  -- {host, username, password}
+    created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at                TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE api_keys (
+    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    customer_id   UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    unkey_key_id  TEXT UNIQUE NOT NULL,
+    name          TEXT,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+    revoked_at    TIMESTAMPTZ
+);
+```
+
+**Notes:**
+- Nodemaven credentials stored in `customers` — 1:1 relationship
+- `api_keys` is a lightweight mirror of Unkey — source of truth is Unkey
+- Usage data comes from Unkey's usage tracking API — no local logging
+- Hard deletes for customer deletion (GDPR)
+
+## Redis Caching
+
+| Key pattern | Value | TTL | Purpose |
+|-------------|-------|-----|---------|
+| `customer:{unkey_key_id}` | Customer record + Nodemaven credentials | Configurable (default 10m) | Avoid DB lookup on every fingerprint generation |
+
+Cache miss → read from Postgres → populate cache.
+
+Invalidated when customer updates Nodemaven credentials (rare).
+
+All TTL values are externalized in config (see Configuration section).
+
+## Configuration
+
+YAML defaults with env var overrides via Viper. Env var convention: `CLAWBROWSER_` prefix, double underscore for nesting.
+
+```yaml
+server:
+  port: 8080
+
+redis:
+  url: redis://localhost:6379
+  ttl:
+    customer: 10m
+
+postgres:
+  url: postgres://localhost:5432/clawbrowser
+
+auth0:
+  domain: ""
+  audience: ""
+
+unkey:
+  url: http://localhost:3000
+  root_key: ""
+
+unibee:
+  url: http://localhost:8088
+  api_key: ""
+
+nodemaven:
+  api_url: https://api.nodemaven.com
+  api_key: ""
+
+ses:
+  region: us-east-1
+  from: noreply@clawbrowser.ai
+```
+
+| YAML path | Env var override |
+|-----------|-----------------|
+| `redis.ttl.customer` | `CLAWBROWSER_REDIS__TTL__CUSTOMER` |
+| `postgres.url` | `CLAWBROWSER_POSTGRES__URL` |
+| `auth0.domain` | `CLAWBROWSER_AUTH0__DOMAIN` |
+| `unkey.root_key` | `CLAWBROWSER_UNKEY__ROOT_KEY` |
+
+## Integration Flows
+
+### Customer Signup
+
+```
+User clicks "Sign Up" (Next.js)
+  → Auth0 handles registration + social OAuth
+    (Google, Apple, Microsoft, GitHub)
+  → Auth0 fires webhook to POST /v1/webhooks/auth0
+  → Go API:
+      1. Create customer record in Postgres
+      2. Call Nodemaven API → create sub-client
+      3. Store sub-client credentials in customer record
+      4. Create default API key via Unkey
+      5. Send welcome email via AWS SES with API key
+```
+
+### Fingerprint Generation
+
+```
+clawbrowser --fingerprint=fp_abc123
+  → POST /v1/fingerprints/generate (Bearer: clawbrowser_xxxxx)
+  → Go API:
+      1. Verify API key with Unkey (<40ms) → get customer identity
+      2. Load customer + Nodemaven creds from Redis (miss → Postgres → cache)
+      3. Generate fingerprint from curated datasets
+      4. Attach proxy credentials from customer's Nodemaven sub-client
+      5. Unkey auto-tracks usage (for billing via UniBee)
+      6. Return fingerprint + proxy
+```
+
+### API Key Rotation
+
+```
+Dashboard → POST /v1/api-keys/{id}/rotate
+  → Go API:
+      1. Verify Auth0 JWT
+      2. Revoke old key in Unkey
+      3. Create new key in Unkey
+      4. Update api_keys table in Postgres
+      5. Invalidate Redis cache for old key
+      6. Return new key (shown once to customer)
+```
+
+## Project Structure
+
+```
+clawbrowser-api/
+├── cmd/
+│   └── server/
+│       └── main.go                    # Entry point
+├── internal/
+│   ├── config/
+│   │   └── config.go                  # Viper-based YAML + env config
+│   ├── api/
+│   │   ├── router.go                  # Chi router, route registration
+│   │   ├── middleware_unkey.go         # API key auth (browser clients)
+│   │   ├── middleware_auth0.go         # JWT auth (dashboard)
+│   │   ├── middleware_webhook.go       # Webhook signature verification
+│   │   ├── handler_fingerprint.go     # /v1/fingerprints/generate
+│   │   ├── handler_proxy.go           # /v1/proxy/verify
+│   │   ├── handler_customer.go        # /v1/me
+│   │   ├── handler_apikeys.go         # /v1/api-keys/*
+│   │   ├── handler_usage.go           # /v1/usage/*
+│   │   ├── handler_billing.go         # /v1/billing/*
+│   │   └── handler_webhooks.go        # /v1/webhooks/*
+│   ├── service/
+│   │   ├── fingerprint.go             # Fingerprint generation logic
+│   │   ├── customer.go                # Customer CRUD + onboarding
+│   │   ├── apikey.go                  # API key orchestration (Unkey wrapper)
+│   │   ├── billing.go                 # Billing orchestration (UniBee wrapper)
+│   │   └── usage.go                   # Usage aggregation (Unkey data)
+│   ├── provider/
+│   │   ├── unkey.go                   # Unkey API client
+│   │   ├── unibee.go                  # UniBee API client
+│   │   ├── nodemaven.go               # Nodemaven API client
+│   │   ├── auth0.go                   # Auth0 Management API client
+│   │   └── ses.go                     # AWS SES email client
+│   ├── store/
+│   │   ├── postgres.go                # DB connection + migrations
+│   │   ├── customer_repo.go           # Customer queries
+│   │   ├── apikey_repo.go             # API key queries
+│   │   └── cache.go                   # Redis cache layer
+│   ├── fingerprint/
+│   │   ├── generator.go               # Core generation logic
+│   │   └── datasets.go                # Curated browser config presets
+│   └── model/
+│       └── types.go                   # Shared domain types
+├── api/
+│   └── openapi.yaml                   # OpenAPI spec (contract with frontend)
+├── migrations/
+│   ├── 001_create_customers.up.sql
+│   ├── 001_create_customers.down.sql
+│   ├── 002_create_api_keys.up.sql
+│   └── 002_create_api_keys.down.sql
+├── config.yaml                        # Default config
+├── Dockerfile
+├── k8s/
+│   ├── deployment.yaml
+│   ├── service.yaml
+│   └── configmap.yaml
+├── go.mod
+└── go.sum
+```
+
+### Layer Responsibilities
+
+- **`api/`** — HTTP concerns only: parse request, call service, write response
+- **`service/`** — Business logic, orchestrates providers and store
+- **`provider/`** — External service API clients (Unkey, UniBee, Nodemaven, Auth0, SES)
+- **`store/`** — Postgres + Redis data access
+- **`fingerprint/`** — Standalone generation logic (no external dependencies)
+- **`model/`** — Shared domain types
+
+## Deployment
+
+Both `clawbrowser-api` and `clawbrowser-dashboard` are built as Docker containers and deployed to EKS.
+
+### EKS Services
+
+| Service | Type | Notes |
+|---------|------|-------|
+| clawbrowser-api | Go container | Main API |
+| clawbrowser-dashboard | Next.js container | Customer portal |
+| Unkey | Self-hosted container | API key management |
+| UniBee | Self-hosted container | Billing |
+
+### AWS Managed Services
+
+| Service | AWS Product |
+|---------|------------|
+| PostgreSQL | RDS |
+| Redis | ElastiCache |
+| Email | SES |
+
+## Fingerprint Generation
+
+Fingerprints are generated from curated datasets of real browser configurations. The generation logic produces internally consistent profiles:
+
+- macOS UA won't pair with Windows fonts
+- Platform presets generate realistic combinations (e.g., "Chrome 122 on macOS 14, M2, 16GB")
+- Timezone and language auto-aligned with proxy geo (from Nodemaven sub-client country)
+- Seed-based PRNG for canvas, audio, and client rects noise — deterministic per profile
+
+See master spec for full list of spoofed surfaces and consistency rules.
+
+## Proxy Integration (Nodemaven)
+
+- Each customer gets a Nodemaven sub-client created at signup
+- Sub-client credentials (gateway host, username, password) stored in `customers.nodemaven_credentials`
+- Geo-targeting is encoded in the proxy username string (e.g., `user-country-US-city-NYC:password`)
+- On fingerprint generation, proxy credentials are included in the response for the clawbrowser binary
+- Proxy verification endpoint (`/v1/proxy/verify`) connects through the proxy and checks actual geo against expected
+
+## Testing Strategy
+
+- **Unit tests:** Service layer logic, fingerprint generation, config parsing
+- **Integration tests:** Handler tests with mocked providers, DB tests against test Postgres
+- **Provider tests:** Unkey/UniBee/Nodemaven client tests against test instances
+- **Contract tests:** Validate OpenAPI spec matches actual handler responses
