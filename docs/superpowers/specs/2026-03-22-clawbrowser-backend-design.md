@@ -11,6 +11,8 @@ Backend system for clawbrowser.ai: a Go monolith API that generates browser fing
 **Master spec:** `docs/superpowers/specs/2026-03-21-clawbrowser-design.md`
 **API contract:** `api/openapi.yaml`
 
+**Note:** This spec supersedes `docs/superpowers/plans/2026-03-21-plan1-backend-api.md`. That plan was written before the backend architecture was finalized and uses a different project structure, fewer external services, and no dashboard endpoints. Use this spec as the source of truth for the backend.
+
 ## Technology Stack
 
 | Component | Technology | Deployment |
@@ -101,6 +103,7 @@ CREATE TABLE customers (
     auth0_id                  TEXT UNIQUE NOT NULL,
     email                     TEXT UNIQUE NOT NULL,
     name                      TEXT,
+    status                    TEXT NOT NULL DEFAULT 'provisioning',  -- provisioning | active | provisioning_failed
     nodemaven_sub_client_id   TEXT UNIQUE,
     nodemaven_credentials     JSONB,  -- {host, username, password}
     created_at                TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -129,7 +132,10 @@ CREATE TABLE api_keys (
 |-------------|-------|-----|---------|
 | `customer:{unkey_key_id}` | Customer record + Nodemaven credentials | Configurable (default 10m) | Avoid DB lookup on every fingerprint generation |
 
-Cache miss → read from Postgres → populate cache.
+**Customer lookup chain on the hot path:**
+1. Unkey verifies the API key and returns the Unkey key ID + metadata (which includes `customer_id`)
+2. Redis lookup: `customer:{unkey_key_id}` → customer record with Nodemaven credentials
+3. On cache miss: query Postgres `api_keys` table by `unkey_key_id` → get `customer_id` → join with `customers` table → populate Redis cache
 
 Invalidated when customer updates Nodemaven credentials (rare).
 
@@ -189,12 +195,22 @@ User clicks "Sign Up" (Next.js)
     (Google, Apple, Microsoft, GitHub)
   → Auth0 fires webhook to POST /v1/webhooks/auth0
   → Go API:
-      1. Create customer record in Postgres
+      1. Create customer record in Postgres (status: "provisioning")
       2. Call Nodemaven API → create sub-client
       3. Store sub-client credentials in customer record
       4. Create default API key via Unkey
-      5. Send welcome email via AWS SES with API key
+      5. Update customer status to "active"
+      6. Send welcome email via AWS SES with API key
 ```
+
+**Failure handling:** The signup flow is a multi-step orchestration. Failures at any step leave the customer in a partial state. The strategy is **forward recovery with status tracking:**
+
+- Customer is created with `status: provisioning` in step 1. This means the webhook always returns 200 to Auth0 (avoiding retries that would create duplicate records).
+- If step 2 (Nodemaven) fails: customer stays in `provisioning`. A background retry job picks up incomplete customers and retries Nodemaven provisioning.
+- If step 4 (Unkey) fails: same — retry job handles it.
+- If step 6 (SES email) fails: customer is still `active` and functional. Email delivery is best-effort; the customer can retrieve their API key from the dashboard.
+- The dashboard shows a "setup in progress" state for customers in `provisioning` status.
+- A retry job runs every 60 seconds, picks up `provisioning` customers older than 30 seconds, and attempts the remaining steps. After 5 failed retries, the customer is marked `provisioning_failed` and an alert is sent.
 
 ### Fingerprint Generation
 
@@ -331,7 +347,7 @@ See master spec for full list of spoofed surfaces and consistency rules.
 - Sub-client credentials (gateway host, username, password) stored in `customers.nodemaven_credentials`
 - Geo-targeting is encoded in the proxy username string (e.g., `user-country-US-city-NYC:password`)
 - On fingerprint generation, proxy credentials are included in the response for the clawbrowser binary
-- Proxy verification endpoint (`/v1/proxy/verify`) connects through the proxy and checks actual geo against expected
+- Proxy verification endpoint (`/v1/proxy/verify`) connects through the proxy, checks actual geo against expected, and returns a `match` boolean
 
 ## Testing Strategy
 
