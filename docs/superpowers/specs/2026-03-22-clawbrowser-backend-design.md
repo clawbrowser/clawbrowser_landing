@@ -309,23 +309,30 @@ clawbrowser-api/
 
 ## Deployment
 
-Both `clawbrowser-api` and `clawbrowser-dashboard` are built as Docker containers and deployed to EKS.
+All deployment logic, K8s manifests, Terraform IaC, and CI/CD pipelines live in `clawbrowser-infra`. This repo contains only application source code and a Dockerfile.
 
-### EKS Services
+**Full deployment spec:** `docs/superpowers/specs/2026-03-22-clawbrowser-devops-design.md`
 
-| Service | Type | Notes |
-|---------|------|-------|
-| clawbrowser-api | Go container | Main API |
-| clawbrowser-dashboard | Next.js container | Customer portal |
-| Unkey | Self-hosted container | API key management |
-| UniBee | Self-hosted container | Billing |
+### App Repo CI Responsibilities
 
-### AWS Managed Services
+On merge to `main`, the app repo's `ci.yaml` workflow:
 
-| Service | AWS Product |
-|---------|------------|
-| PostgreSQL | RDS |
-| Redis | ElastiCache |
+1. Run tests
+2. Build Docker image
+3. Tag: `v{semver}-{build_number}-{short_sha}` (e.g., `v1.2.3-42-abc123f`)
+4. Push to Docker Hub
+5. Fire `repository_dispatch` to `clawbrowser-infra` with `{"event_type": "deploy-api", "client_payload": {"image_tag": "v1.2.3-42-abc123f"}}`
+
+The infra repo then deploys the image to QA. Promotion to prod is a separate manual workflow in the infra repo.
+
+### Health Probes
+
+The API must expose these endpoints for K8s liveness/readiness probes:
+
+| Probe | Endpoint | Purpose |
+|-------|----------|---------|
+| Liveness | `GET /healthz` | Restart unhealthy pods |
+| Readiness | `GET /readyz` | Gate traffic during rolling deploys |
 
 ## Fingerprint Generation
 
