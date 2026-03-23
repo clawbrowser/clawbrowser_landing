@@ -35,6 +35,10 @@ Application repos contain no deployment logic. All infrastructure, pipelines, an
 | AWS auth (CI/CD) | OIDC federation (no long-lived keys) |
 | Email | MailerSend SMTP |
 | Secret scanning | detect-secrets + custom pre-commit hooks |
+| Metrics storage | VictoriaMetrics |
+| Log storage | VictoriaLogs |
+| Log collection | Fluent Bit (DaemonSet) |
+| Dashboards | Grafana |
 
 ## Environments
 
@@ -55,7 +59,7 @@ Each namespace contains its own instances of:
 - UniBee
 - Traefik IngressRoutes
 
-Traefik and Sealed Secrets controllers are cluster-wide (single instance).
+Traefik and Sealed Secrets controllers are cluster-wide (single instance). Observability services (VictoriaMetrics, VictoriaLogs, Grafana, Fluent Bit) are cluster-wide in the `observability` namespace.
 
 ## Repository Structure
 
@@ -126,6 +130,26 @@ clawbrowser-infra/
 │       │   └── kustomization.yaml
 │       ├── sealed-secrets-controller/
 │       │   ├── deployment.yaml
+│       │   └── kustomization.yaml
+│       ├── observability/
+│       │   ├── namespace.yaml
+│       │   ├── victoriametrics/
+│       │   │   ├── deployment.yaml
+│       │   │   ├── service.yaml
+│       │   │   └── kustomization.yaml
+│       │   ├── victorialogs/
+│       │   │   ├── deployment.yaml
+│       │   │   ├── service.yaml
+│       │   │   └── kustomization.yaml
+│       │   ├── grafana/
+│       │   │   ├── deployment.yaml
+│       │   │   ├── service.yaml
+│       │   │   ├── datasources.yaml
+│       │   │   └── kustomization.yaml
+│       │   ├── fluent-bit/
+│       │   │   ├── daemonset.yaml
+│       │   │   ├── configmap.yaml
+│       │   │   └── kustomization.yaml
 │       │   └── kustomization.yaml
 │       └── kustomization.yaml
 ├── .github/
@@ -480,11 +504,12 @@ Kubernetes NetworkPolicy resources in each overlay restrict cross-namespace traf
 - Pods in `clawbrowser-dev` cannot reach services in `clawbrowser-qa` or `clawbrowser-prod`
 - Pods in `clawbrowser-qa` cannot reach services in `clawbrowser-prod`
 - Only Traefik (cluster-wide) can ingress into all namespaces
+- Fluent Bit and VictoriaMetrics (in `observability` namespace) can read logs and scrape metrics across all namespaces
 
 ## Deferred Concerns
 
 The following are out of scope for this initial spec but should be addressed as the product matures:
 
-- **Monitoring & observability** — logging (CloudWatch/Fluentd), metrics (Prometheus), alerting
+- **Alerting** — alert rules and notification channels for observability stack (see `2026-03-23-clawbrowser-observability-design.md`)
 - **Horizontal Pod Autoscaler (HPA)** — auto-scaling based on CPU/memory or custom metrics
 - **CDN** — CloudFront or similar for dashboard static assets
