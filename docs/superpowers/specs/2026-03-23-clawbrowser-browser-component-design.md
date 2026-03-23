@@ -1,5 +1,7 @@
 # Clawbrowser Browser Component Design Spec
 
+> **Supersedes** sections of the [original clawbrowser design spec](2026-03-21-clawbrowser-design.md) related to the browser binary implementation. Specifically, this spec replaces the Rust/libclaw FFI approach with pure C++, replaces POSIX shared memory IPC with file-path IPC, and updates the verification failure behavior. The original spec remains authoritative for high-level product vision and feature scope.
+
 ## Overview
 
 The clawbrowser browser component is a patched Chromium browser (latest stable at time of implementation, macOS MVP) with built-in fingerprint spoofing, proxy routing, and a CLI for profile management. All custom logic lives in a `clawbrowser/` shim library compiled as a static library and linked into the Chromium browser target. Chromium subsystem patches are minimal hooks (1–5 lines each) calling into the shim.
@@ -9,7 +11,7 @@ The clawbrowser browser component is a patched Chromium browser (latest stable a
 - **Pure C++** — all fingerprint injection logic lives in Chromium patches and the shim library. No Rust, no FFI, no JS injection.
 - **Thin shim + minimal patches** — `clawbrowser/` shim is a static library with CLI, API client, fingerprint loading, proxy config, verification, and noise generation. Each Chromium subsystem patch is a 1–5 line hook into the shim.
 - **File-path IPC** — fingerprint data is passed to child processes via `--clawbrowser-fp-path=<path>` flag. Each process reads the file during pre-sandbox init. No shared memory, no Mojo IPC, no sandbox modifications.
-- **Code-generated types** — `FingerprintData` struct and JSON parser are auto-generated from `api/openapi.yaml` using quicktype, keeping the browser in lockstep with the backend API.
+- **Code-generated types** — API response structs and JSON parsers are auto-generated from `api/openapi.yaml` using quicktype, keeping the browser in lockstep with the backend API.
 - **macOS MVP** — Linux and Android support deferred.
 
 ## Architecture
@@ -64,6 +66,8 @@ clawbrowser                                      # Vanilla browser, no spoofing
 clawbrowser --list                               # List cached profiles, exit
 ```
 
+**Note:** If `--fingerprint=<id>` is provided and no cached profile exists for that ID, the browser implicitly calls the API to generate one. There is no separate `--new` flag — profile creation is implicit on first use of an ID.
+
 ### Additional Flags
 
 - `--verbose` — enable `[clawbrowser]` debug logging to stderr.
@@ -77,11 +81,28 @@ clawbrowser --list                               # List cached profiles, exit
 ~/Library/Application Support/Clawbrowser/
 ├── config.json                      # API key + API base URL
 ├── Browser/
-│   ├── Default/                     # Vanilla profile (no fingerprint)
-│   └── fp_abc123/                   # Fingerprint profile
-│       ├── fingerprint.json         # GenerateResponse body + metadata
-│       └── <Chromium profile data>  # cookies, localStorage, etc.
+│   ├── Default/                     # Vanilla Chromium user-data-dir
+│   └── fp_abc123/                   # Fingerprint user-data-dir
+│       ├── fingerprint.json         # Profile envelope (see On-Disk Format)
+│       └── Default/                 # Chromium profile directory
+│           └── <Chromium profile data>  # cookies, localStorage, etc.
 ```
+
+Chromium flags for fingerprint profiles:
+- `--user-data-dir=~/Library/Application Support/Clawbrowser/Browser/fp_abc123`
+- Chromium creates `Default/` inside this directory automatically for its profile data.
+
+Vanilla mode:
+- `--user-data-dir=~/Library/Application Support/Clawbrowser/Browser/Default`
+
+### API Key Resolution
+
+The API key is resolved in the following order (first match wins):
+
+1. `CLAWBROWSER_API_KEY` environment variable
+2. `api_key` field in `config.json`
+
+This allows CI/automation to pass the key via env var without a config file.
 
 ### Startup Flow
 
@@ -92,28 +113,31 @@ Parse args
   │
   ├─ --fingerprint=<id>?
   │   ├─ --regenerate OR no cached profile?
-  │   │   ├─ Load API key from config.json
+  │   │   ├─ Resolve API key (env var → config.json)
   │   │   ├─ POST /v1/fingerprints/generate
-  │   │   ├─ Save response to fp_<id>/fingerprint.json
+  │   │   │   (request params: platform, browser from defaults;
+  │   │   │    country/city/connection_type from --regenerate reuses
+  │   │   │    stored request params, new profile uses defaults)
+  │   │   ├─ Save response as profile envelope to fp_<id>/fingerprint.json
   │   │   └─ Continue
   │   ├─ Cached profile exists?
   │   │   └─ Read fp_<id>/fingerprint.json → Continue
   │   │
   │   ├─ Set --clawbrowser-fp-path=<path to fingerprint.json>
-  │   ├─ Set --user-data-dir=<fp_<id> profile dir>
+  │   ├─ Set --user-data-dir=<fp_<id> directory>
   │   ├─ Configure proxy from fingerprint proxy config
   │   └─ Launch Chromium → clawbrowser://verify (unless --skip-verify)
   │
   └─ No --fingerprint?
-      └─ Launch vanilla Chromium (Default profile, no spoofing)
+      └─ Launch vanilla Chromium (Default user-data-dir, no spoofing)
 ```
 
 ### API Client
 
-The shim includes a C++ HTTP client for pre-launch API calls, using Chromium's built-in network stack or a lightweight HTTP client (e.g., libcurl statically linked).
+The shim includes a C++ HTTP client for pre-launch API calls, using Chromium's `net::URLFetcher` (available in the browser process before full Chromium init via `net::URLRequestContextBuilder`).
 
 - Only two endpoints: `POST /v1/fingerprints/generate`, `POST /v1/proxy/verify`.
-- Bearer auth with API key from `config.json`.
+- Bearer auth with resolved API key.
 - Timeout: 10s, no retries — fail fast with clear error message.
 - Errors print to stderr and exit with non-zero code.
 
@@ -125,6 +149,35 @@ The shim includes a C++ HTTP client for pre-launch API calls, using Chromium's b
 
 ## Fingerprint Loading & Sandbox Integration
 
+### On-Disk Format (Profile Envelope)
+
+The `fingerprint.json` file on disk wraps the API `GenerateResponse` in a local envelope with metadata. The envelope struct is **not code-generated** — it is hand-written in the shim, while the nested `GenerateResponse` is code-generated from the OpenAPI spec.
+
+```json
+{
+  "schema_version": 1,
+  "created_at": "2026-03-23T10:00:00Z",
+  "request": {
+    "platform": "macos",
+    "browser": "chrome",
+    "country": "US",
+    "city": "New York",
+    "connection_type": "residential"
+  },
+  "response": {
+    "fingerprint": { ... },
+    "proxy": { ... }
+  }
+}
+```
+
+| Field | Type | Purpose |
+|-------|------|---------|
+| `schema_version` | integer | Envelope format version. Current: `1`. If missing or outdated, warn and suggest `--regenerate` but still attempt to load. |
+| `created_at` | ISO 8601 string | When the profile was generated. |
+| `request` | object | Original `GenerateRequest` params. Replayed on `--regenerate` to preserve country/city/connection_type. |
+| `response` | `GenerateResponse` | The API response body (code-generated struct). Contains `fingerprint` and `proxy`. |
+
 ### Data Lifecycle
 
 ```
@@ -133,9 +186,10 @@ fingerprint.json on disk
        │ (1) Browser process reads at startup
        │     (pre-Chromium init)
        ▼
-  In-memory FingerprintData struct
+  In-memory: ProfileEnvelope → GenerateResponse → Fingerprint + ProxyConfig
        │
-       │ (2) --clawbrowser-fp-path flag inherited by child processes
+       │ (2) --clawbrowser-fp-path flag explicitly added to child process
+       │     command lines via patch to content/browser/child_process_launcher.cc
        │
        ├──→ Renderer process: reads file pre-sandbox → in-memory struct
        ├──→ GPU process: reads file pre-sandbox → in-memory struct
@@ -160,10 +214,11 @@ fingerprint.json on disk
 | `content/renderer/renderer_main.cc` | Call `clawbrowser::LoadFingerprint()` pre-sandbox |
 | `content/gpu/gpu_main.cc` | Call `clawbrowser::LoadFingerprint()` pre-sandbox |
 | `chrome/browser/chrome_browser_main.cc` | Load fingerprint + CLI init in browser process |
+| `content/browser/child_process_launcher.cc` | Propagate `--clawbrowser-fp-path` flag to child process command lines |
 
 ## Code Generation from OpenAPI
 
-The `FingerprintData` C++ struct and its JSON parser are auto-generated from the backend's OpenAPI spec (`api/openapi.yaml`) using **quicktype**, keeping the browser in lockstep with the backend API.
+The API response structs (`GenerateResponse`, `Fingerprint`, `ProxyConfig`, etc.) and their JSON parsers are auto-generated from the backend's OpenAPI spec (`api/openapi.yaml`) using **quicktype**, keeping the browser in lockstep with the backend API.
 
 ### Pipeline
 
@@ -178,28 +233,50 @@ clawbrowser/schemas/fingerprint.schema.json
        │
        │ (2) quicktype --src-lang schema --lang cpp --namespace clawbrowser
        │     --include-location global-include --source-style single-source
+       │     --type-style pascal-case --member-style underscore-case
        ▼
 clawbrowser/generated/
 ├── fingerprint_types.h       # Struct definitions
-├── fingerprint_types.cc      # JSON parsing (nlohmann/json)
+├── fingerprint_types.cc      # JSON parsing (using Chromium's base::Value / base::JSONReader)
 └── README.md                 # "DO NOT EDIT — generated from api/openapi.yaml"
 ```
+
+**Note on JSON library:** quicktype generates code using nlohmann/json by default. Since Chromium does not ship nlohmann/json, a custom quicktype template is used to target Chromium's built-in `base::Value` / `base::JSONReader` instead. This eliminates the need to vendor an external JSON library. The custom template lives in `clawbrowser/schemas/quicktype-chromium-template/`.
 
 ### What Gets Generated
 
 From OpenAPI schemas:
 
-- `GenerateResponse` → top-level response struct
-- `Fingerprint` → all surface fields (user_agent, platform, screen, hardware, webgl, canvas_seed, audio_seed, client_rects_seed, timezone, language, fonts, media_devices, plugins, battery, speech_voices)
+- `GenerateResponse` → top-level response struct (contains `fingerprint` + `proxy`)
+- `Fingerprint` → all surface fields
 - `ProxyConfig` → proxy credentials (host, port, username, password, country, city, connection_type)
 - `Screen`, `Hardware`, `WebGL`, `MediaDevice`, `Plugin`, `Battery` → nested structs
 - `VerifyProxyRequest` / `VerifyProxyResponse` → used by API client and verify page
+- `GenerateRequest` → used for the request field in the profile envelope
+
+**Field name mapping:** The generated structs use field names exactly as defined in the OpenAPI spec. The override tables in this spec reference these exact names:
+
+| OpenAPI field | Generated C++ field | JS API |
+|--------------|-------------------|--------|
+| `fingerprint.language` (array) | `language` | `navigator.language` → `language[0]`, `navigator.languages` → `language` |
+| `fingerprint.hardware.concurrency` | `concurrency` | `navigator.hardwareConcurrency` |
+| `fingerprint.hardware.memory` | `memory` | `navigator.deviceMemory` |
+| `fingerprint.battery.charging` | `charging` | `BatteryManager.charging` |
+| `fingerprint.battery.level` | `level` | `BatteryManager.level` |
+
+### What Is NOT Generated
+
+The following are hand-written in the shim (not derived from OpenAPI):
+
+- `ProfileEnvelope` — the on-disk wrapper struct (`schema_version`, `created_at`, `request`, `response`)
+- `FingerprintAccessor` — process-global singleton accessor
+- `FingerprintLoader` — file reading and pre-sandbox init
+- Noise PRNG state and functions
 
 ### Build Integration
 
 - GN build step runs the generator before compiling the shim.
 - CI validates generated files are up-to-date (same pattern as the dashboard's `pnpm generate-types` check).
-- Manual structs only for browser-internal concepts not in the API (e.g., noise PRNG state).
 
 ### Lockstep Guarantee
 
@@ -211,21 +288,21 @@ Each patch intercepts a Chromium/Blink API at the point where it returns a value
 
 ### Navigator Properties
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `navigator.userAgent` | `third_party/blink/renderer/core/frame/navigator.cc` | Return `user_agent` |
-| `navigator.platform` | Same file | Return `platform` |
-| `navigator.language` | Same file | Return `language` |
-| `navigator.languages` | Same file | Return `languages` |
-| `navigator.hardwareConcurrency` | Same file | Return `hardware_concurrency` |
-| `navigator.deviceMemory` | Same file | Return `device_memory` |
+| `navigator.userAgent` | `third_party/blink/renderer/core/frame/navigator.cc` | `fingerprint.user_agent` |
+| `navigator.platform` | Same file | `fingerprint.platform` |
+| `navigator.language` | Same file | `fingerprint.language[0]` |
+| `navigator.languages` | Same file | `fingerprint.language` (full array) |
+| `navigator.hardwareConcurrency` | Same file | `fingerprint.hardware.concurrency` |
+| `navigator.deviceMemory` | Same file | `fingerprint.hardware.memory` |
 
 ### Screen Metrics
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `screen.width/height/avail*` | `third_party/blink/renderer/core/frame/screen.cc` | Return screen values |
-| `window.devicePixelRatio` | `third_party/blink/renderer/core/frame/local_dom_window.cc` | Return `pixel_ratio` |
+| `screen.width/height/avail*` | `third_party/blink/renderer/core/frame/screen.cc` | `fingerprint.screen.*` |
+| `window.devicePixelRatio` | `third_party/blink/renderer/core/frame/local_dom_window.cc` | `fingerprint.screen.pixel_ratio` |
 
 ### Canvas 2D
 
@@ -235,66 +312,66 @@ Each patch intercepts a Chromium/Blink API at the point where it returns a value
 | `canvas.toBlob()` | Same file | Same noise application |
 | `getImageData()` | `third_party/blink/renderer/modules/canvas/canvas2d/canvas_rendering_context_2d.cc` | Apply seeded noise to returned pixel data |
 
-Noise strategy: PRNG seeded with `canvas_seed`, generates per-pixel offset (±1 per channel), deterministic across calls for same content.
+Noise strategy: PRNG seeded with `fingerprint.canvas_seed`, generates per-pixel offset (±1 per channel), deterministic across calls for same content.
 
 ### WebGL
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `getParameter(VENDOR/RENDERER)` | `third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc` | Return `webgl_vendor`/`webgl_renderer` |
+| `getParameter(VENDOR/RENDERER)` | `third_party/blink/renderer/modules/webgl/webgl_rendering_context_base.cc` | `fingerprint.webgl.vendor` / `fingerprint.webgl.renderer` |
 | `WEBGL_debug_renderer_info` | Same file | Same strings via debug extension |
-| `readPixels()` | Same file | Apply seeded noise (same strategy as Canvas, using `canvas_seed`) |
+| `readPixels()` | Same file | Apply seeded noise (same strategy as Canvas, using `fingerprint.canvas_seed`) |
 
 ### AudioContext
 
 | JS API | Patch location | Override |
 |--------|---------------|----------|
-| `AudioBuffer.getChannelData()` | `third_party/blink/renderer/modules/webaudio/audio_buffer.cc` | Apply seeded float noise (±1e-7) using `audio_seed` |
+| `AudioBuffer.getChannelData()` | `third_party/blink/renderer/modules/webaudio/audio_buffer.cc` | Apply seeded float noise (±1e-7) using `fingerprint.audio_seed` |
 | `AnalyserNode.getFloatFrequencyData()` | `third_party/blink/renderer/modules/webaudio/analyser_node.cc` | Same noise strategy |
 
 ### ClientRects
 
 | JS API | Patch location | Override |
 |--------|---------------|----------|
-| `Element.getClientRects()` | `third_party/blink/renderer/core/dom/element.cc` | Apply seeded sub-pixel offset (±0.001px) using `client_rects_seed` |
+| `Element.getClientRects()` | `third_party/blink/renderer/core/dom/element.cc` | Apply seeded sub-pixel offset (±0.001px) using `fingerprint.client_rects_seed` |
 | `Element.getBoundingClientRect()` | Same file | Same offset |
 
 ### Fonts
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| Font enumeration | `third_party/blink/renderer/platform/fonts/font_cache.cc` | Filter system fonts to only those in `fonts` list |
+| Font enumeration | `third_party/blink/renderer/platform/fonts/font_cache.cc` | Filter system fonts to only those in `fingerprint.fonts` list |
 
 ### Media Devices
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `navigator.mediaDevices.enumerateDevices()` | `third_party/blink/renderer/modules/mediastream/media_devices.cc` | Return `media_devices` list |
+| `navigator.mediaDevices.enumerateDevices()` | `third_party/blink/renderer/modules/mediastream/media_devices.cc` | Return `fingerprint.media_devices` list |
 
 ### Plugins
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `navigator.plugins` | `third_party/blink/renderer/core/page/navigator_plugins.cc` | Return `plugins` list |
+| `navigator.plugins` | `third_party/blink/renderer/core/page/navigator_plugins.cc` | Return `fingerprint.plugins` list |
 
 ### Battery
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `navigator.getBattery()` | `third_party/blink/renderer/modules/battery/battery_manager.cc` | Return `battery_charging`/`battery_level` |
+| `navigator.getBattery()` | `third_party/blink/renderer/modules/battery/battery_manager.cc` | `fingerprint.battery.charging` / `fingerprint.battery.level` |
 
 ### Speech Synthesis
 
-| JS API | Patch location | Override |
+| JS API | Patch location | Override (generated field) |
 |--------|---------------|----------|
-| `speechSynthesis.getVoices()` | `third_party/blink/renderer/modules/speech/speech_synthesis.cc` | Filter to `speech_voices` list |
+| `speechSynthesis.getVoices()` | `third_party/blink/renderer/modules/speech/speech_synthesis.cc` | Filter to `fingerprint.speech_voices` list |
 
 ### Timezone & Language (Process-Level)
 
 | Surface | Approach |
 |---------|----------|
 | Timezone | Set `TZ` env var before ICU init in each process, affects `Intl.DateTimeFormat`, `Date.getTimezoneOffset()` |
-| Language | Override via `--lang` Chromium flag + Accept-Language header via fingerprint data |
+| Language | Override via `--lang` Chromium flag + `--accept-lang` flag, derived from `fingerprint.language` |
 
 ## Proxy Routing & WebRTC Leak Prevention
 
@@ -303,7 +380,7 @@ Noise strategy: PRNG seeded with `canvas_seed`, generates per-pixel offset (±1 
 The shim builds a Chromium `ProxyConfig` from the fingerprint's proxy credentials at startup, before Chromium's network stack initializes.
 
 ```
-fingerprint.json proxy field:
+fingerprint.json → response.proxy field:
   host, port, username, password, country, city, connection_type
        │
        ▼
@@ -335,7 +412,7 @@ WebRTC can leak the real IP via STUN/TURN even when a proxy is configured. Two p
 
 The proxy's geo alignment extends to HTTP headers:
 
-- `Accept-Language` header set to match fingerprint `languages` array.
+- `Accept-Language` header set to match `fingerprint.language` array.
 - Configured via Chromium's `--accept-lang` flag derived from fingerprint data.
 - Consistent with `navigator.language`/`navigator.languages` overrides.
 
@@ -361,11 +438,14 @@ Browser starts with --fingerprint
        ├─ Navigator: userAgent, platform, language,
        │   hardwareConcurrency, deviceMemory
        ├─ Screen: width, height, colorDepth, pixelRatio
-       ├─ Canvas: render test pattern → toDataURL() → hash
+       ├─ Canvas: render test pattern twice → compare hashes
+       │   (determinism check: both must match)
        ├─ WebGL: getParameter(VENDOR), getParameter(RENDERER),
-       │   readPixels() → hash
-       ├─ Audio: OfflineAudioContext → getChannelData() → hash
-       ├─ ClientRects: getBoundingClientRect() on test element → values
+       │   readPixels() twice → compare hashes (determinism check)
+       ├─ Audio: OfflineAudioContext twice → compare hashes
+       │   (determinism check)
+       ├─ ClientRects: getBoundingClientRect() twice on same element
+       │   → values must match (stability check)
        ├─ Timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
        ├─ Fonts: test known fonts from profile list
        ├─ MediaDevices: enumerateDevices()
@@ -374,22 +454,51 @@ Browser starts with --fingerprint
        ├─ SpeechSynthesis: speechSynthesis.getVoices()
        │
        ├─ Proxy check:
-       │   POST /v1/proxy/verify (via fetch from page)
-       │   Confirms exit IP matches expected country/city
+       │   Browser process makes POST /v1/proxy/verify server-side,
+       │   injects result into page via WebUI message handler
+       │   (API key never exposed to page JS context)
        │
        ▼
   Results written to DOM + exposed via JS global:
   window.__clawbrowser_verify = {
     status: "pass" | "fail",
     checks: [
-      { surface: "navigator.userAgent", pass: true },
-      { surface: "canvas", pass: true },
+      { surface: "navigator.userAgent", pass: true, expected: "...", actual: "..." },
+      { surface: "canvas", pass: true, detail: "deterministic" },
       { surface: "proxy", pass: true, actual_country: "US" },
       ...
     ],
     timestamp: "2026-03-23T..."
   }
 ```
+
+### Fingerprint Comparison Strategy
+
+The verify page uses two comparison strategies depending on the surface type:
+
+**Direct comparison (for simple values):** The WebUI handler injects expected values from the fingerprint into the page via `window.__clawbrowser_expected`. The page JS reads the actual browser values and compares.
+
+```
+window.__clawbrowser_expected = {
+  user_agent: "...",
+  platform: "...",
+  timezone: "America/New_York",
+  screen_width: 1920,
+  ...
+}
+```
+
+**Determinism check (for seeded noise surfaces):** Canvas, WebGL readPixels, AudioContext, and ClientRects are verified by rendering the same operation twice and confirming identical output. This proves the PRNG-based noise is deterministic without needing to pre-compute expected hashes in C++ (which would require a software renderer).
+
+### Proxy Verification Authentication
+
+The proxy check (`POST /v1/proxy/verify`) requires a Bearer API key. To avoid exposing the API key to the renderer process JS context:
+
+1. The verify page JS sends a WebUI message to the browser process: `chrome.send('verifyProxy')`.
+2. The browser process WebUI handler (`verify_page.cc`) makes the HTTP call using the already-loaded API key.
+3. The result is sent back to the page via a JS callback.
+
+This keeps the API key exclusively in the browser process.
 
 ### CDP/Automation Integration
 
@@ -400,26 +509,11 @@ Automation clients detect verification completion by:
 3. If `"pass"` → proceed with automation.
 4. If `"fail"` → read `checks` array for details, abort or handle.
 
-### Fingerprint Comparison
-
-The page accesses expected fingerprint values via a second JS global injected by the WebUI handler:
-
-```
-window.__clawbrowser_expected = {
-  user_agent: "...",
-  platform: "...",
-  canvas_hash: "...",   // pre-computed by shim from seed
-  ...
-}
-```
-
-The shim pre-computes expected hashes for seeded surfaces (canvas, audio, client rects) using the same PRNG + test patterns that the verify page will render.
-
 ### Failure Behavior
 
 - Page displays red/green status per surface with details.
 - `--skip-verify` bypasses the page entirely (for development/debugging).
-- Verification failure does **not** force-quit the browser — the automation client decides how to handle it.
+- Verification failure does **not** force-quit the browser — the automation client decides how to handle it. This is an intentional deviation from the original design spec, which blocked CDP on failure. Allowing CDP inspection of failure details is more practical for debugging.
 - Exit code behavior: when launched with `--fingerprint`, if verify fails and no CDP client connects within 30s, exit with code 1.
 
 ## Build System & Project Structure
@@ -435,15 +529,18 @@ chromium/src/
 ├── third_party/blink/         # Existing Blink renderer
 ├── clawbrowser/               # Shim library
 │   ├── BUILD.gn
+│   ├── profile_envelope.h          # Hand-written: on-disk wrapper struct
+│   ├── profile_envelope.cc
 │   ├── fingerprint_loader.h
 │   ├── fingerprint_loader.cc
 │   ├── fingerprint_accessor.h
 │   ├── fingerprint_accessor.cc
 │   ├── schemas/
-│   │   └── extract_schemas.py      # Extracts JSON Schema from openapi.yaml
+│   │   ├── extract_schemas.py           # Extracts JSON Schema from openapi.yaml
+│   │   └── quicktype-chromium-template/ # Custom template for base::Value output
 │   ├── generated/
 │   │   ├── fingerprint_types.h     # quicktype-generated structs
-│   │   ├── fingerprint_types.cc    # quicktype-generated JSON parsing
+│   │   ├── fingerprint_types.cc    # quicktype-generated JSON parsing (base::Value)
 │   │   └── README.md               # "DO NOT EDIT — generated from api/openapi.yaml"
 │   ├── cli/
 │   │   ├── args.h
@@ -469,28 +566,31 @@ chromium/src/
 │   │   ├── 001-browser-main-init.patch
 │   │   ├── 002-renderer-main-loader.patch
 │   │   ├── 003-gpu-main-loader.patch
-│   │   ├── 004-navigator-properties.patch
-│   │   ├── 005-screen-metrics.patch
-│   │   ├── 006-canvas-noise.patch
-│   │   ├── 007-webgl-override.patch
-│   │   ├── 008-audio-noise.patch
-│   │   ├── 009-client-rects-noise.patch
-│   │   ├── 010-fonts-filter.patch
-│   │   ├── 011-media-devices.patch
-│   │   ├── 012-plugins.patch
-│   │   ├── 013-battery.patch
-│   │   ├── 014-speech-voices.patch
-│   │   ├── 015-timezone-env.patch
-│   │   ├── 016-webrtc-leak-prevention.patch
-│   │   ├── 017-proxy-config.patch
-│   │   ├── 018-verify-page-registration.patch
-│   │   └── 019-build-dep.patch
+│   │   ├── 004-child-process-flag-propagation.patch
+│   │   ├── 005-navigator-properties.patch
+│   │   ├── 006-screen-metrics.patch
+│   │   ├── 007-canvas-noise.patch
+│   │   ├── 008-webgl-override.patch
+│   │   ├── 009-audio-noise.patch
+│   │   ├── 010-client-rects-noise.patch
+│   │   ├── 011-fonts-filter.patch
+│   │   ├── 012-media-devices.patch
+│   │   ├── 013-plugins.patch
+│   │   ├── 014-battery.patch
+│   │   ├── 015-speech-voices.patch
+│   │   ├── 016-timezone-env.patch
+│   │   ├── 017-webrtc-leak-prevention.patch
+│   │   ├── 018-proxy-config.patch
+│   │   ├── 019-verify-page-registration.patch
+│   │   └── 020-build-dep.patch
 │   └── test/
 │       ├── fixtures/
 │       │   ├── valid_fingerprint.json
 │       │   ├── minimal_fingerprint.json
 │       │   └── malformed_fingerprint.json
 │       ├── fingerprint_loader_unittest.cc
+│       ├── profile_envelope_unittest.cc
+│       ├── api_client_unittest.cc
 │       ├── args_unittest.cc
 │       ├── profile_manager_unittest.cc
 │       ├── proxy_config_unittest.cc
@@ -502,6 +602,7 @@ chromium/src/
 ```gn
 static_library("clawbrowser") {
   sources = [
+    "profile_envelope.cc",
     "fingerprint_loader.cc",
     "fingerprint_accessor.cc",
     "generated/fingerprint_types.cc",
@@ -517,13 +618,14 @@ static_library("clawbrowser") {
     "//net",
     "//content/public/browser",
     "//content/public/renderer",
-    "//third_party/nlohmann_json",
   ]
 }
 
 test("clawbrowser_unittests") {
   sources = [
     "test/fingerprint_loader_unittest.cc",
+    "test/profile_envelope_unittest.cc",
+    "test/api_client_unittest.cc",
     "test/args_unittest.cc",
     "test/profile_manager_unittest.cc",
     "test/proxy_config_unittest.cc",
@@ -536,6 +638,8 @@ test("clawbrowser_unittests") {
 }
 ```
 
+No external JSON library dependency — uses Chromium's built-in `base::Value` / `base::JSONReader`.
+
 ### Chromium Patches
 
 All patches tracked in `clawbrowser/patches/` using `git diff` format for easy reapplication after upstream rebases.
@@ -545,22 +649,23 @@ All patches tracked in `clawbrowser/patches/` using `git diff` format for easy r
 | 001 | `chrome/browser/chrome_browser_main.cc` | Browser process: CLI init + fingerprint load |
 | 002 | `content/renderer/renderer_main.cc` | Renderer process: pre-sandbox fingerprint load |
 | 003 | `content/gpu/gpu_main.cc` | GPU process: pre-sandbox fingerprint load |
-| 004 | `third_party/blink/renderer/core/frame/navigator.cc` | Navigator property overrides |
-| 005 | `screen.cc`, `local_dom_window.cc` | Screen metrics + devicePixelRatio |
-| 006 | `html_canvas_element.cc`, `canvas_rendering_context_2d.cc` | Canvas 2D seeded noise |
-| 007 | `webgl_rendering_context_base.cc` | WebGL vendor/renderer + readPixels noise |
-| 008 | `audio_buffer.cc`, `analyser_node.cc` | AudioContext seeded noise |
-| 009 | `element.cc` | ClientRects seeded offset |
-| 010 | `font_cache.cc` | Font enumeration filter |
-| 011 | `media_devices.cc` | MediaDevices override |
-| 012 | `navigator_plugins.cc` | Plugins override |
-| 013 | `battery_manager.cc` | Battery API override |
-| 014 | `speech_synthesis.cc` | Speech voices filter |
-| 015 | ICU init paths | TZ env var before ICU init |
-| 016 | `rtc_peer_connection.cc`, `peer_connection_dependency_factory.cc` | WebRTC leak prevention |
-| 017 | Network stack init | Proxy setup integration |
-| 018 | WebUI registration | Register `clawbrowser://verify` page |
-| 019 | `chrome/BUILD.gn` | Add `//clawbrowser` dependency |
+| 004 | `content/browser/child_process_launcher.cc` | Propagate `--clawbrowser-fp-path` to child processes |
+| 005 | `third_party/blink/renderer/core/frame/navigator.cc` | Navigator property overrides |
+| 006 | `screen.cc`, `local_dom_window.cc` | Screen metrics + devicePixelRatio |
+| 007 | `html_canvas_element.cc`, `canvas_rendering_context_2d.cc` | Canvas 2D seeded noise |
+| 008 | `webgl_rendering_context_base.cc` | WebGL vendor/renderer + readPixels noise |
+| 009 | `audio_buffer.cc`, `analyser_node.cc` | AudioContext seeded noise |
+| 010 | `element.cc` | ClientRects seeded offset |
+| 011 | `font_cache.cc` | Font enumeration filter |
+| 012 | `media_devices.cc` | MediaDevices override |
+| 013 | `navigator_plugins.cc` | Plugins override |
+| 014 | `battery_manager.cc` | Battery API override |
+| 015 | `speech_synthesis.cc` | Speech voices filter |
+| 016 | ICU init paths | TZ env var before ICU init |
+| 017 | `rtc_peer_connection.cc`, `peer_connection_dependency_factory.cc` | WebRTC leak prevention |
+| 018 | Network stack init | Proxy setup integration |
+| 019 | WebUI registration | Register `clawbrowser://verify` page |
+| 020 | `chrome/BUILD.gn` | Add `//clawbrowser` dependency |
 
 ### Rebase Strategy
 
@@ -577,13 +682,13 @@ All shim logic tested independently, no Chromium UI needed.
 
 | Test suite | What it covers |
 |-----------|---------------|
-| `fingerprint_loader_unittest` | File reading: valid path, missing file, empty file, permissions error |
+| `fingerprint_loader_unittest` | File reading: valid path, missing file, empty file, permissions error, malformed JSON, missing required fields |
+| `profile_envelope_unittest` | Envelope parsing: schema_version check, created_at, request params extraction, response delegation to generated parser |
+| `api_client_unittest` | HTTP calls: success responses, timeout handling, error parsing (401, 429, 500), network failure |
 | `args_unittest` | CLI parsing: all flag combinations, unknown flags pass through, no flags = vanilla mode |
-| `profile_manager_unittest` | List profiles, read/write fingerprint.json, config.json loading |
+| `profile_manager_unittest` | List profiles, read/write fingerprint.json, config.json loading, env var precedence for API key |
 | `proxy_config_unittest` | ProxyConfig construction from fingerprint, no-proxy case |
 | `prng_unittest` | Deterministic output: same seed → same sequence, different seeds → different, noise within bounds |
-
-Generated type parsing is tested implicitly — malformed JSON and missing fields are covered by `fingerprint_loader_unittest` using test fixtures.
 
 ### Integration Tests (Browser-Level)
 
@@ -593,9 +698,9 @@ Run a full clawbrowser instance with a test fingerprint file, use CDP to verify 
 |------|-----------------|
 | Navigator properties | CDP eval `navigator.userAgent` etc. matches fingerprint |
 | Screen metrics | CDP eval `screen.width` etc. matches fingerprint |
-| Canvas determinism | Render same pattern twice → identical `toDataURL()` hash, matches expected |
+| Canvas determinism | Render same pattern twice → identical `toDataURL()` hash |
 | WebGL strings | CDP eval `getParameter(VENDOR/RENDERER)` matches fingerprint |
-| Audio determinism | OfflineAudioContext → `getChannelData()` hash matches expected |
+| Audio determinism | OfflineAudioContext → `getChannelData()` hash is stable across calls |
 | ClientRects stability | Same element → same sub-pixel offsets across calls |
 | Timezone | CDP eval `Intl.DateTimeFormat().resolvedOptions().timeZone` matches |
 | Fonts | Probe fingerprint fonts → detected, probe non-fingerprint fonts → not detected |
@@ -622,8 +727,7 @@ Run a full clawbrowser instance with a test fingerprint file, use CDP to verify 
 
 | Scenario | Behavior |
 |----------|----------|
-| `--fingerprint` but no `config.json` | Stderr: `[clawbrowser] error: config.json not found at <path>. Run setup first.` Exit 1 |
-| `config.json` missing API key | Stderr: `[clawbrowser] error: api_key not set in config.json` Exit 1 |
+| `--fingerprint` but no API key (no env var, no config.json) | Stderr: `[clawbrowser] error: API key not found. Set CLAWBROWSER_API_KEY or add api_key to config.json` Exit 1 |
 | API call fails (network) | Stderr: `[clawbrowser] error: cannot reach API at <url>: <reason>` Exit 1 |
 | API call fails (401) | Stderr: `[clawbrowser] error: invalid API key` Exit 1 |
 | API call fails (429) | Stderr: `[clawbrowser] error: rate limited, try again later` Exit 1 |
@@ -645,7 +749,7 @@ All errors go to stderr. With `--output=json`, errors also emit structured JSON:
 | Proxy drops mid-session | Chromium's native proxy error page shows. No auto-recovery — session is tied to one proxy. User must restart. |
 | Multiple `--fingerprint` flags | Last one wins (standard Chromium flag behavior). |
 | Invalid `--fingerprint` ID format | Stderr: `[clawbrowser] error: invalid fingerprint ID: <value>` Exit 1 |
-| `fingerprint.json` from older API version | Check a `version` field in the JSON. If missing or outdated, warn and suggest `--regenerate` but still attempt to load. |
+| `fingerprint.json` with outdated `schema_version` | Warn to stderr: `[clawbrowser] warn: fingerprint schema version <N> is outdated, consider --regenerate`. Still attempt to load — missing optional fields degrade gracefully. |
 
 ### Graceful Degradation
 
