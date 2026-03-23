@@ -24,7 +24,7 @@ Backend system for clawbrowser.ai: a Go monolith API that generates browser fing
 | API key management | Unkey | Self-hosted → EKS |
 | Billing & metering | UniBee | Self-hosted → EKS |
 | Proxy provider | Nodemaven | External API |
-| Transactional email | AWS SES | Managed |
+| Transactional email | MailerSend SMTP | External SaaS |
 | Config | Viper (YAML + env var overrides) | — |
 
 ## Architecture
@@ -173,8 +173,10 @@ nodemaven:
   api_url: https://api.nodemaven.com
   api_key: ""
 
-ses:
-  region: us-east-1
+mailersend:
+  smtp_host: smtp.mailersend.net
+  smtp_port: 587
+  api_key: ""
   from: noreply@clawbrowser.ai
 ```
 
@@ -200,7 +202,7 @@ User clicks "Sign Up" (Next.js)
       3. Store sub-client credentials in customer record
       4. Create default API key via Unkey
       5. Update customer status to "active"
-      6. Send welcome email via AWS SES with API key
+      6. Send welcome email via MailerSend with API key
 ```
 
 **Failure handling:** The signup flow is a multi-step orchestration. Failures at any step leave the customer in a partial state. The strategy is **forward recovery with status tracking:**
@@ -208,7 +210,7 @@ User clicks "Sign Up" (Next.js)
 - Customer is created with `status: provisioning` in step 1. This means the webhook always returns 200 to Auth0 (avoiding retries that would create duplicate records).
 - If step 2 (Nodemaven) fails: customer stays in `provisioning`. A background retry job picks up incomplete customers and retries Nodemaven provisioning.
 - If step 4 (Unkey) fails: same — retry job handles it.
-- If step 6 (SES email) fails: customer is still `active` and functional. Email delivery is best-effort; the customer can retrieve their API key from the dashboard.
+- If step 6 (MailerSend email) fails: customer is still `active` and functional. Email delivery is best-effort; the customer can retrieve their API key from the dashboard.
 - The dashboard shows a "setup in progress" state for customers in `provisioning` status.
 - A retry job runs every 60 seconds, picks up `provisioning` customers older than 30 seconds, and attempts the remaining steps. After 5 failed retries, the customer is marked `provisioning_failed` and an alert is sent.
 
@@ -272,7 +274,7 @@ clawbrowser-api/
 │   │   ├── unibee.go                  # UniBee API client
 │   │   ├── nodemaven.go               # Nodemaven API client
 │   │   ├── auth0.go                   # Auth0 Management API client
-│   │   └── ses.go                     # AWS SES email client
+│   │   └── mailersend.go              # MailerSend SMTP email client
 │   ├── store/
 │   │   ├── postgres.go                # DB connection + migrations
 │   │   ├── customer_repo.go           # Customer queries
@@ -292,10 +294,6 @@ clawbrowser-api/
 │   └── 002_create_api_keys.down.sql
 ├── config.yaml                        # Default config
 ├── Dockerfile
-├── k8s/
-│   ├── deployment.yaml
-│   ├── service.yaml
-│   └── configmap.yaml
 ├── go.mod
 └── go.sum
 ```
@@ -304,7 +302,7 @@ clawbrowser-api/
 
 - **`api/`** — HTTP concerns only: parse request, call service, write response
 - **`service/`** — Business logic, orchestrates providers and store
-- **`provider/`** — External service API clients (Unkey, UniBee, Nodemaven, Auth0, SES)
+- **`provider/`** — External service API clients (Unkey, UniBee, Nodemaven, Auth0, MailerSend)
 - **`store/`** — Postgres + Redis data access
 - **`fingerprint/`** — Standalone generation logic (no external dependencies)
 - **`model/`** — Shared domain types
@@ -328,7 +326,6 @@ Both `clawbrowser-api` and `clawbrowser-dashboard` are built as Docker container
 |---------|------------|
 | PostgreSQL | RDS |
 | Redis | ElastiCache |
-| Email | SES |
 
 ## Fingerprint Generation
 
