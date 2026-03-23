@@ -12,7 +12,7 @@ The clawbrowser browser component is a patched Chromium browser (latest stable a
 - **Thin shim + minimal patches** — `clawbrowser/` shim is a static library with CLI, API client, fingerprint loading, proxy config, verification, and noise generation. Each Chromium subsystem patch is a 1–5 line hook into the shim.
 - **File-path IPC** — fingerprint data is passed to child processes via `--clawbrowser-fp-path=<path>` flag. Each process reads the file during pre-sandbox init. No shared memory, no Mojo IPC, no sandbox modifications.
 - **Code-generated types** — API response structs and JSON parsers are auto-generated from `api/openapi.yaml` using quicktype, keeping the browser in lockstep with the backend API.
-- **macOS MVP** — Linux and Android support deferred.
+- **Linux MVP** — macOS and Android support deferred.
 
 ## Architecture
 
@@ -78,7 +78,7 @@ clawbrowser --list                               # List cached profiles, exit
 ### Profile Storage
 
 ```
-~/Library/Application Support/Clawbrowser/
+~/.config/clawbrowser/
 ├── config.json                      # API key + API base URL
 ├── Browser/
 │   ├── Default/                     # Vanilla Chromium user-data-dir
@@ -89,11 +89,11 @@ clawbrowser --list                               # List cached profiles, exit
 ```
 
 Chromium flags for fingerprint profiles:
-- `--user-data-dir=~/Library/Application Support/Clawbrowser/Browser/fp_abc123`
+- `--user-data-dir=~/.config/clawbrowser/Browser/fp_abc123`
 - Chromium creates `Default/` inside this directory automatically for its profile data.
 
 Vanilla mode:
-- `--user-data-dir=~/Library/Application Support/Clawbrowser/Browser/Default`
+- `--user-data-dir=~/.config/clawbrowser/Browser/Default`
 
 ### API Key Resolution
 
@@ -764,7 +764,7 @@ If a fingerprint field is `null` or absent, that specific surface override is sk
 | Item | Reason |
 |------|--------|
 | TLS/JA3 fingerprinting | Requires BoringSSL patches, significant complexity — separate spec |
-| Linux support | macOS MVP first, Linux patches differ (sandbox model, font paths) |
+| macOS support | Linux MVP first, macOS patches differ (Seatbelt sandbox, font paths) |
 | Android support | Different Chromium build target, different proxy/sandbox model |
 | Chromium upstream rebase automation | Manual patch reapplication for MVP, tooling later |
 | `navigator.plugins` deprecation | Already deprecated, keep override but expect it to become no-op |
