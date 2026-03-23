@@ -26,6 +26,7 @@ Backend system for clawbrowser.ai: a Go monolith API that generates browser fing
 | Proxy provider | Nodemaven | External API |
 | Transactional email | MailerSend SMTP | External SaaS |
 | Config | Viper (YAML + env var overrides) | — |
+| Code generation | oapi-codegen (OpenAPI → Chi server + types) | Build-time |
 
 ## Architecture
 
@@ -252,17 +253,15 @@ clawbrowser-api/
 │   ├── config/
 │   │   └── config.go                  # Viper-based YAML + env config
 │   ├── api/
-│   │   ├── router.go                  # Chi router, route registration
+│   │   ├── gen/
+│   │   │   ├── generate.go            # //go:generate directive for oapi-codegen
+│   │   │   ├── server.gen.go          # Generated: ServerInterface + Chi routing
+│   │   │   └── types.gen.go           # Generated: request/response types
+│   │   ├── server.go                  # Implements gen.ServerInterface
+│   │   ├── router.go                  # Chi router, middleware chain, mounts generated routes
 │   │   ├── middleware_unkey.go         # API key auth (browser clients)
 │   │   ├── middleware_auth0.go         # JWT auth (dashboard)
-│   │   ├── middleware_webhook.go       # Webhook signature verification
-│   │   ├── handler_fingerprint.go     # /v1/fingerprints/generate
-│   │   ├── handler_proxy.go           # /v1/proxy/verify
-│   │   ├── handler_customer.go        # /v1/me
-│   │   ├── handler_apikeys.go         # /v1/api-keys/*
-│   │   ├── handler_usage.go           # /v1/usage/*
-│   │   ├── handler_billing.go         # /v1/billing/*
-│   │   └── handler_webhooks.go        # /v1/webhooks/*
+│   │   └── middleware_webhook.go       # Webhook signature verification
 │   ├── service/
 │   │   ├── fingerprint.go             # Fingerprint generation logic
 │   │   ├── customer.go                # Customer CRUD + onboarding
@@ -292,6 +291,7 @@ clawbrowser-api/
 │   ├── 001_create_customers.down.sql
 │   ├── 002_create_api_keys.up.sql
 │   └── 002_create_api_keys.down.sql
+├── oapi-codegen.yaml                  # Code generation config
 ├── config.yaml                        # Default config
 ├── Dockerfile
 ├── go.mod
@@ -300,12 +300,38 @@ clawbrowser-api/
 
 ### Layer Responsibilities
 
-- **`api/`** — HTTP concerns only: parse request, call service, write response
+- **`api/gen/`** — Generated code (do not edit): `ServerInterface`, Chi route registration, request/response types
+- **`api/`** — Hand-written: `server.go` implements `gen.ServerInterface`, `router.go` wires middleware + mounts generated routes
 - **`service/`** — Business logic, orchestrates providers and store
 - **`provider/`** — External service API clients (Unkey, UniBee, Nodemaven, Auth0, MailerSend)
 - **`store/`** — Postgres + Redis data access
 - **`fingerprint/`** — Standalone generation logic (no external dependencies)
 - **`model/`** — Shared domain types
+
+### Code Generation (oapi-codegen)
+
+Server types and routing are generated from `api/openapi.yaml` using `oapi-codegen`. Configuration in `oapi-codegen.yaml`:
+
+```yaml
+# oapi-codegen v2 multi-output config
+output:
+  - package: gen
+    output: internal/api/gen/server.gen.go
+    generate:
+      chi-server: true
+      embedded-spec: false
+  - package: gen
+    output: internal/api/gen/types.gen.go
+    generate:
+      models: true
+```
+
+- Run `go generate ./...` to regenerate after OpenAPI spec changes
+- Generated files (`*.gen.go`) are committed to the repo
+- The OpenAPI spec is a build-time artifact only — it is **not** embedded in the binary and **not** served by any endpoint
+- `internal/api/server.go` implements `gen.ServerInterface` — each method maps to one API endpoint and delegates to the service layer
+- Health probes (`/healthz`, `/readyz`) are **not** in the OpenAPI spec — they are infrastructure endpoints registered directly in `router.go`
+- Webhook signature verification is applied as Chi middleware in `router.go`, not via OpenAPI security schemes
 
 ## Deployment
 
