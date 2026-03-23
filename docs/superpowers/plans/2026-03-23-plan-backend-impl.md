@@ -576,6 +576,10 @@ func (p *Postgres) Close() {
 	p.Pool.Close()
 }
 
+func (p *Postgres) Ping(ctx context.Context) error {
+	return p.Pool.Ping(ctx)
+}
+
 func (p *Postgres) Migrate(migrationsDir string) error {
 	connConfig := p.Pool.Config().ConnConfig
 	dsn := stdlib.RegisterConnConfig(connConfig)
@@ -4035,6 +4039,7 @@ Create `internal/api/router.go`:
 package api
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -4042,6 +4047,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+// ReadinessChecker checks if a dependency is ready.
+type ReadinessChecker interface {
+	Ping(ctx context.Context) error
+}
 
 // NewRouter creates the Chi router with all middleware and routes.
 func NewRouter(
@@ -4051,6 +4061,7 @@ func NewRouter(
 	auth0WebhookSecret string,
 	unibeeWebhookSecret string,
 	webhookSignatureHeader string,
+	readinessCheckers ...ReadinessChecker,
 ) http.Handler {
 	r := chi.NewRouter()
 
@@ -4065,7 +4076,13 @@ func NewRouter(
 		w.Write([]byte("ok"))
 	})
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		// TODO: check DB and Redis connectivity for readiness
+		for _, checker := range readinessCheckers {
+			if err := checker.Ping(r.Context()); err != nil {
+				w.WriteHeader(http.StatusServiceUnavailable)
+				w.Write([]byte("not ready"))
+				return
+			}
+		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
 	})
@@ -4248,7 +4265,7 @@ func main() {
 	unkeyVerifier := &unkeyVerifierAdapter{client: unkeyClient}
 	jwtValidator := &auth0ValidatorAdapter{client: auth0Client}
 
-	router := clawapi.NewRouter(server, unkeyVerifier, jwtValidator, "", "", "X-Webhook-Signature")
+	router := clawapi.NewRouter(server, unkeyVerifier, jwtValidator, "", "", "X-Webhook-Signature", pg, cache)
 
 	// Start HTTP server
 	httpServer := &http.Server{
