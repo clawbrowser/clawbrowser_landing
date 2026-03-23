@@ -130,8 +130,8 @@ clawbrowser-infra/
 │       └── kustomization.yaml
 ├── .github/
 │   └── workflows/
-│       ├── build-deploy-api.yaml         # Triggered by clawbrowser-api: build + deploy to QA
-│       ├── build-deploy-dashboard.yaml   # Triggered by clawbrowser-dashboard: build + deploy to QA
+│       ├── deploy-api.yaml               # Triggered by clawbrowser-api: deploy image to QA
+│       ├── deploy-dashboard.yaml        # Triggered by clawbrowser-dashboard: deploy image to QA
 │       ├── deploy-dev.yaml               # Manual dispatch: deploy specific image to dev
 │       ├── promote-prod.yaml             # Manual dispatch: promote QA image to prod
 │       ├── terraform-apply.yaml          # Plan on PR, apply on merge
@@ -158,23 +158,37 @@ Example: `clawbrowser-api:v1.2.3-42-abc123f`
 
 The same image tag follows through QA → prod. No rebuild on promotion.
 
-### Build Flow (app repo → infra repo)
+### Build Flow (app repo builds, infra repo deploys)
+
+Each app repo builds and pushes its own Docker image, then triggers the infra repo to deploy.
+
+**Build (in app repo, on merge to main):**
+
+```
+clawbrowser-api repo (ci.yaml)
+─────────────────────
+PR merged to main
+  → ci.yaml triggers:
+      1. Run tests
+      2. Build Docker image
+      3. Tag: v1.2.3-42-abc123f
+      4. Push to Docker Hub
+      5. Fire repository_dispatch to clawbrowser-infra
+```
+
+Same flow for `clawbrowser-dashboard` (with pnpm install, lint, typecheck, test, generate-types before Docker build).
+
+**Deploy (in infra repo, triggered by app repo):**
 
 ```
 clawbrowser-api repo                     clawbrowser-infra repo
 ─────────────────────                    ──────────────────────
-PR merged to main
-  → repository_dispatch ──────────────→ build-api.yaml triggers:
-                                          1. Checkout clawbrowser-api repo
-                                          2. Run tests
-                                          3. Build Docker image
-                                          4. Tag: v1.2.3-42-abc123f
-                                          5. Push to Docker Hub
-                                          6. Update QA overlay image tag
-                                          7. Deploy to QA namespace
+repository_dispatch ──────────────────→ deploy-api.yaml triggers:
+                                          1. Update QA overlay image tag
+                                          2. Deploy to QA namespace
 ```
 
-Same flow for `clawbrowser-dashboard`.
+Same flow for `clawbrowser-dashboard` via `deploy-dashboard.yaml`.
 
 ### Cross-Repo Triggering
 
@@ -182,15 +196,14 @@ App repos fire `repository_dispatch` to `clawbrowser-infra` using a GitHub App t
 
 ```json
 {
-  "event_type": "build-api",
+  "event_type": "deploy-api",
   "client_payload": {
-    "ref": "main",
-    "sha": "abc123f",
-    "tag": "v1.2.3",
-    "run_number": "42"
+    "image_tag": "v1.2.3-42-abc123f"
   }
 }
 ```
+
+For dashboard: `"event_type": "deploy-dashboard"`.
 
 ### QA → Prod Promotion (Manual Dispatch)
 

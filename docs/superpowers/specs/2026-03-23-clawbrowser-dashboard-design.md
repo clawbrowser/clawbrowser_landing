@@ -460,6 +460,56 @@ CMD ["node", "server.js"]
 - `next.config.ts` uses `output: 'standalone'` for self-contained `server.js`
 - `features.json` copied into image; env vars override at runtime via Kustomize
 
+### CI/CD Flow
+
+The dashboard follows the same cross-repo build pattern defined in the devops spec (`2026-03-22-clawbrowser-devops-design.md`). All pipelines live in `clawbrowser-infra`.
+
+**Build (in dashboard repo, on merge to main):**
+
+```
+clawbrowser-dashboard repo
+────────────────────────
+PR merged to main
+  → ci.yaml triggers:
+      1. Setup pnpm + Node 22 (cached pnpm store)
+      2. pnpm install --frozen-lockfile
+      3. pnpm lint
+      4. pnpm typecheck
+      5. pnpm test
+      6. pnpm generate-types
+      7. Build Docker image (multi-stage)
+      8. Tag: v{semver}-{build_number}-{short_sha}
+      9. Push to Docker Hub
+     10. Fire repository_dispatch to clawbrowser-infra
+```
+
+**Deploy (triggered in infra repo):**
+
+```
+clawbrowser-dashboard repo              clawbrowser-infra repo
+────────────────────────                ──────────────────────
+repository_dispatch ─────────────────→ deploy-dashboard.yaml triggers:
+                                          1. Update QA overlay image tag
+                                          2. Deploy to QA namespace
+```
+
+**Cross-repo trigger payload:**
+
+```json
+{
+  "event_type": "deploy-dashboard",
+  "client_payload": {
+    "image_tag": "v1.0.0-15-abc123f"
+  }
+}
+```
+
+**QA → Prod promotion:** Manual dispatch via `promote-prod.yaml` in `clawbrowser-infra`. Verifies image exists in Docker Hub and is running in QA before deploying to prod. Same image tag — no rebuild.
+
+**Dev deployment:** Manual dispatch via `deploy-dev.yaml` for deploying specific image tags to dev namespace.
+
+**Image tagging:** `v{semver}-{build_number}-{short_sha}` (e.g., `clawbrowser-dashboard:v1.0.0-15-abc123f`). Built once in the dashboard repo, promoted through environments without rebuilding.
+
 ### GitHub Actions CI Caching
 
 pnpm store cached in GitHub Actions for faster builds:
