@@ -134,7 +134,7 @@ Parse args
 
 ### API Client
 
-The shim includes a C++ HTTP client for pre-launch API calls, using Chromium's `net::URLFetcher` (available in the browser process before full Chromium init via `net::URLRequestContextBuilder`).
+The shim includes a C++ HTTP client for pre-launch API calls, using Chromium's `network::SimpleURLLoader` (the modern replacement for the deprecated `net::URLFetcher`, available in the browser process via the Network Service).
 
 - Only two endpoints: `POST /v1/fingerprints/generate`, `POST /v1/proxy/verify`.
 - Bearer auth with resolved API key.
@@ -263,6 +263,10 @@ From OpenAPI schemas:
 | `fingerprint.hardware.memory` | `memory` | `navigator.deviceMemory` |
 | `fingerprint.battery.charging` | `charging` | `BatteryManager.charging` |
 | `fingerprint.battery.level` | `level` | `BatteryManager.level` |
+| `fingerprint.screen.avail_width` | `avail_width` | `screen.availWidth` |
+| `fingerprint.screen.avail_height` | `avail_height` | `screen.availHeight` |
+| `fingerprint.screen.color_depth` | `color_depth` | `screen.colorDepth` |
+| `fingerprint.screen.pixel_ratio` | `pixel_ratio` | `window.devicePixelRatio` |
 
 ### What Is NOT Generated
 
