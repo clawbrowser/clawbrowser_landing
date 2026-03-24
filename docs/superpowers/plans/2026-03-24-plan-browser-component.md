@@ -21,6 +21,8 @@
 
 This applies to `GenerateResponse`, `VerifyProxyRequest`, `VerifyProxyResponse`, and all nested types.
 
+**Graceful degradation contract:** Fields marked as optional in the OpenAPI spec (`media_devices`, `plugins`, `battery`, `speech_voices`, `proxy`) MUST be represented as `std::optional<T>` or empty containers in the generated types. The `FromDict`/`FromJson` methods must NOT fail when optional fields are absent or null — they should parse successfully with those fields empty/nullopt. This enables partial fingerprints (e.g., proxy-only profiles). All Chromium patches must check for empty/null before overriding (the accessor returning non-null does not mean every field is populated).
+
 **Context:** This plan supersedes `2026-03-21-plan2-libclaw.md` (Rust/FFI approach) and `2026-03-21-plan3-chromium-patches.md`. Both are now deprecated — the pure C++ approach in this plan is authoritative.
 
 ---
@@ -56,6 +58,8 @@ chromium/src/clawbrowser/
 │   └── proxy_config.cc
 ├── startup.h                             # Top-level startup orchestration
 ├── startup.cc
+├── logging.h                             # Verbose-gated logging macros
+├── logging.cc
 ├── verify/
 │   ├── verify_page.h                    # WebUI page handler
 │   ├── verify_page.cc
@@ -99,7 +103,8 @@ chromium/src/clawbrowser/
     ├── args_unittest.cc
     ├── profile_manager_unittest.cc
     ├── proxy_config_unittest.cc
-    └── prng_unittest.cc
+    ├── prng_unittest.cc
+    └── startup_unittest.cc
 ```
 
 ---
@@ -424,19 +429,62 @@ test("clawbrowser_unittests") {
 }
 ```
 
-- [ ] **Step 11: Verify GN build parses (no compile yet — generated code needed first)**
+- [ ] **Step 11: Create CI check script for generated file freshness**
+
+Create `clawbrowser/schemas/check_generated_fresh.sh`:
+
+```bash
+#!/bin/bash
+# CI script: verify generated C++ types are up-to-date with openapi.yaml.
+# Exits non-zero if regeneration produces different output.
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+GEN_DIR="$SCRIPT_DIR/../generated"
+
+# Save current generated files
+cp "$GEN_DIR/fingerprint_types.h" /tmp/fingerprint_types.h.before
+cp "$GEN_DIR/fingerprint_types.cc" /tmp/fingerprint_types.cc.before
+
+# Regenerate
+cd "$SCRIPT_DIR"
+python3 extract_schemas.py
+quicktype --src-lang schema --lang cpp --namespace clawbrowser \
+  --include-location global-include --source-style single-source \
+  --type-style pascal-case --member-style underscore-case \
+  --out "$GEN_DIR/fingerprint_types.h" \
+  fingerprint.schema.json
+# Split .h/.cc if needed (same process as initial generation)
+
+# Compare
+if ! diff -q /tmp/fingerprint_types.h.before "$GEN_DIR/fingerprint_types.h" >/dev/null 2>&1 || \
+   ! diff -q /tmp/fingerprint_types.cc.before "$GEN_DIR/fingerprint_types.cc" >/dev/null 2>&1; then
+  echo "ERROR: Generated files are out of date with api/openapi.yaml"
+  echo "Run: cd clawbrowser/schemas && python3 extract_schemas.py && quicktype ..."
+  # Restore originals
+  cp /tmp/fingerprint_types.h.before "$GEN_DIR/fingerprint_types.h"
+  cp /tmp/fingerprint_types.cc.before "$GEN_DIR/fingerprint_types.cc"
+  exit 1
+fi
+
+echo "OK: Generated files are up to date"
+```
+
+This script should be run in CI on every commit. Add to the CI pipeline alongside `clawbrowser_unittests`.
+
+- [ ] **Step 12: Verify GN build parses (no compile yet — generated code needed first)**
 
 Run: `gn gen out/Default && gn check out/Default //clawbrowser:clawbrowser`
 Expected: Build files generated, no errors.
 
-- [ ] **Step 12: Commit**
+- [ ] **Step 13: Commit**
 
 ```bash
 git add clawbrowser/BUILD.gn clawbrowser/schemas/ clawbrowser/generated/ clawbrowser/test/fixtures/
 git commit -m "feat(browser): scaffold project structure and code generation pipeline
 
 Add BUILD.gn, schema extraction script, quicktype Chromium template,
-generated C++ types from OpenAPI spec, and test fixtures."
+generated C++ types from OpenAPI spec, test fixtures, and CI freshness check."
 ```
 
 ---
@@ -2836,6 +2884,13 @@ Create `clawbrowser/verify/resources/verify.js`:
     checks: checks,
     timestamp: new Date().toISOString()
   };
+
+  // Notify browser process of verification result (triggers 30s exit timer on failure)
+  try {
+    chrome.send('verifyComplete', [allPass ? 'pass' : 'fail']);
+  } catch (e) {
+    // chrome.send not available outside WebUI context
+  }
 })();
 
 // Handler for proxy verify response from browser process
@@ -2888,8 +2943,18 @@ class VerifyPageUI : public content::WebUIController {
   // Handle "verifyProxy" message from page JS.
   void HandleVerifyProxy(const base::Value::List& args);
 
+  // Handle "verifyComplete" message — result of all checks.
+  void HandleVerifyComplete(const base::Value::List& args);
+
   // Configure data source: add resources and inject expected values.
   void SetupDataSource(content::WebUIDataSource* source);
+
+  // 30s timeout: if verify fails and no CDP client connects, exit(1).
+  void StartFailureExitTimer();
+  void OnFailureExitTimeout();
+
+  bool verify_passed_ = false;
+  base::OneShotTimer failure_exit_timer_;
 };
 
 // URL host for the verify page.
@@ -2927,6 +2992,10 @@ VerifyPageUI::VerifyPageUI(content::WebUI* web_ui)
   web_ui->RegisterMessageCallback(
       "verifyProxy",
       base::BindRepeating(&VerifyPageUI::HandleVerifyProxy,
+                          base::Unretained(this)));
+  web_ui->RegisterMessageCallback(
+      "verifyComplete",
+      base::BindRepeating(&VerifyPageUI::HandleVerifyComplete,
                           base::Unretained(this)));
 }
 
@@ -3028,6 +3097,49 @@ void VerifyPageUI::HandleVerifyProxy(const base::Value::List& args) {
   // SharedURLLoaderFactory is accessed from WebUI context.
 }
 
+void VerifyPageUI::HandleVerifyComplete(const base::Value::List& args) {
+  // Called by verify.js when all checks are done.
+  // args[0] is the status string: "pass" or "fail"
+  if (!args.empty() && args[0].is_string()) {
+    verify_passed_ = (args[0].GetString() == "pass");
+  }
+
+  if (!verify_passed_) {
+    StartFailureExitTimer();
+  }
+}
+
+void VerifyPageUI::StartFailureExitTimer() {
+  // Spec: if verify fails and no CDP client connects within 30s, exit(1).
+  // If a CDP client is connected (DevToolsAgentHost has sessions),
+  // the timer is not started — the client decides how to handle failure.
+  auto* agent_host = content::DevToolsAgentHost::GetOrCreateFor(
+      web_ui()->GetWebContents());
+  if (agent_host && agent_host->IsAttached()) {
+    // CDP client is connected — don't force exit, let client handle it
+    return;
+  }
+
+  failure_exit_timer_.Start(
+      FROM_HERE, base::Seconds(30),
+      base::BindOnce(&VerifyPageUI::OnFailureExitTimeout,
+                     base::Unretained(this)));
+}
+
+void VerifyPageUI::OnFailureExitTimeout() {
+  // 30s elapsed, verify failed, no CDP client connected
+  // Check one more time if a CDP client has since connected
+  auto* agent_host = content::DevToolsAgentHost::GetOrCreateFor(
+      web_ui()->GetWebContents());
+  if (agent_host && agent_host->IsAttached()) {
+    return;  // Client connected in the meantime
+  }
+
+  LOG(ERROR) << "[clawbrowser] verify failed, no CDP client connected "
+             << "within 30s — exiting";
+  base::Process::TerminateCurrentProcessImmediately(1);
+}
+
 }  // namespace clawbrowser
 ```
 
@@ -3102,7 +3214,59 @@ Includes .grd resource file for embedded HTML/JS/CSS."
 - Create: `clawbrowser/startup.cc`
 - Modify: `clawbrowser/BUILD.gn`
 
-This task implements the top-level startup flow from the spec (lines 110-133): parse args -> handle --list -> resolve API key -> check cache -> API call if needed -> save profile -> set command-line flags -> configure proxy -> set language flags.
+This task implements the top-level startup flow from the spec (lines 110-133): parse args -> handle --list -> resolve API key -> check cache -> API call if needed -> save profile -> set command-line flags -> configure proxy -> set language flags. It also implements verbose-gated logging and the 30s verify-failure exit timeout.
+
+- [ ] **Step 0: Create verbose-gated logging macros**
+
+The spec requires default-silent operation with `--verbose` enabling `[clawbrowser]` prefixed stderr output. Create a thin wrapper around Chromium's LOG macros that gates on a global verbose flag.
+
+Create `clawbrowser/logging.h`:
+
+```cpp
+#ifndef CLAWBROWSER_LOGGING_H_
+#define CLAWBROWSER_LOGGING_H_
+
+#include "base/logging.h"
+
+namespace clawbrowser {
+
+// Set by startup orchestration based on --verbose flag.
+void SetVerbose(bool verbose);
+bool IsVerbose();
+
+}  // namespace clawbrowser
+
+// Clawbrowser logging macros — only emit when --verbose is set.
+// Errors always emit (regardless of --verbose).
+#define CLAW_LOG(severity) \
+  if (severity == logging::LOGGING_ERROR || clawbrowser::IsVerbose()) \
+    LOG(severity) << "[clawbrowser] "
+
+#define CLAW_VLOG() \
+  if (clawbrowser::IsVerbose()) \
+    LOG(INFO) << "[clawbrowser] "
+
+#endif  // CLAWBROWSER_LOGGING_H_
+```
+
+Create `clawbrowser/logging.cc`:
+
+```cpp
+#include "clawbrowser/logging.h"
+
+namespace clawbrowser {
+
+namespace {
+bool g_verbose = false;
+}
+
+void SetVerbose(bool verbose) { g_verbose = verbose; }
+bool IsVerbose() { return g_verbose; }
+
+}  // namespace clawbrowser
+```
+
+Add to BUILD.gn sources: `"logging.h"`, `"logging.cc"`.
 
 - [ ] **Step 1: Write startup orchestration header**
 
@@ -3160,24 +3324,23 @@ Create `clawbrowser/startup.cc`:
 #include "clawbrowser/startup.h"
 
 #include "base/json/json_writer.h"
-#include "base/logging.h"
 #include "base/values.h"
 #include "clawbrowser/cli/api_client.h"
 #include "clawbrowser/cli/args.h"
 #include "clawbrowser/cli/profile_manager.h"
 #include "clawbrowser/fingerprint_accessor.h"
 #include "clawbrowser/fingerprint_loader.h"
+#include "clawbrowser/logging.h"
 #include "clawbrowser/proxy/proxy_config.h"
 
 namespace clawbrowser {
 
 namespace {
 
-constexpr char kConfigDir[] = "/.config/clawbrowser";
-
 void PrintError(const ClawArgs& args, const std::string& code,
                 const std::string& message) {
-  LOG(ERROR) << "[clawbrowser] error: " << message;
+  // Errors always print to stderr regardless of --verbose
+  fprintf(stderr, "[clawbrowser] error: %s\n", message.c_str());
   if (args.json_output()) {
     base::Value::Dict error;
     error.Set("error", code);
@@ -3194,7 +3357,11 @@ base::expected<StartupResult, std::string> RunStartup(
     base::CommandLine* command_line,
     scoped_refptr<network::SharedURLLoaderFactory> url_loader_factory) {
   ClawArgs args = ClawArgs::Parse(*command_line);
+  SetVerbose(args.verbose());
   StartupResult result;
+
+  CLAW_VLOG() << "starting with args: fingerprint="
+              << args.fingerprint_id();
 
   // Resolve config directory
   base::FilePath home_dir;
@@ -3374,24 +3541,256 @@ base::expected<StartupResult, std::string> RunStartup(
 }  // namespace clawbrowser
 ```
 
-- [ ] **Step 3: Update BUILD.gn**
+- [ ] **Step 3: Write startup unit tests**
+
+Create `clawbrowser/test/startup_unittest.cc`:
+
+```cpp
+#include "clawbrowser/startup.h"
+
+#include "base/command_line.h"
+#include "base/environment.h"
+#include "base/files/file_util.h"
+#include "base/files/scoped_temp_dir.h"
+#include "base/json/json_reader.h"
+#include "clawbrowser/fingerprint_accessor.h"
+#include "services/network/test/test_url_loader_factory.h"
+#include "testing/gtest/include/gtest/gtest.h"
+
+namespace clawbrowser {
+namespace {
+
+class StartupTest : public testing::Test {
+ protected:
+  void SetUp() override {
+    ASSERT_TRUE(temp_dir_.CreateUniqueTempDir());
+    // Override HOME so ProfileManager uses our temp dir
+    env_ = base::Environment::Create();
+    env_->SetVar("HOME", temp_dir_.GetPath().AsUTF8Unsafe());
+    // Create config dir structure
+    base::FilePath config_dir =
+        temp_dir_.GetPath().AppendASCII(".config/clawbrowser");
+    base::CreateDirectory(config_dir);
+  }
+
+  void TearDown() override {
+    FingerprintAccessor::Reset();
+    env_->UnSetVar("HOME");
+    env_->UnSetVar("CLAWBROWSER_API_KEY");
+  }
+
+  void WriteConfigJson(const std::string& api_key) {
+    base::FilePath config_path = temp_dir_.GetPath()
+        .AppendASCII(".config/clawbrowser/config.json");
+    base::WriteFile(config_path,
+                    "{\"api_key\": \"" + api_key + "\"}");
+  }
+
+  void WriteCachedProfile(const std::string& id) {
+    base::FilePath profile_dir = temp_dir_.GetPath()
+        .AppendASCII(".config/clawbrowser/Browser").AppendASCII(id);
+    base::CreateDirectory(profile_dir);
+    // Read from test fixture
+    base::FilePath fixture;
+    base::PathService::Get(base::DIR_EXE, &fixture);
+    fixture = fixture.AppendASCII("clawbrowser/test/fixtures/valid_fingerprint.json");
+    std::string json;
+    base::ReadFileToString(fixture, &json);
+    base::WriteFile(profile_dir.AppendASCII("fingerprint.json"), json);
+  }
+
+  base::ScopedTempDir temp_dir_;
+  std::unique_ptr<base::Environment> env_;
+  network::TestURLLoaderFactory url_loader_factory_;
+};
+
+TEST_F(StartupTest, VanillaMode) {
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_FALSE(result->should_exit);
+  // Should set --user-data-dir to Default
+  EXPECT_TRUE(cmd.HasSwitch("user-data-dir"));
+  EXPECT_NE(cmd.GetSwitchValueASCII("user-data-dir").find("Default"),
+            std::string::npos);
+  // Accessor should be null (no fingerprint)
+  EXPECT_EQ(FingerprintAccessor::Get(), nullptr);
+}
+
+TEST_F(StartupTest, ListProfiles) {
+  WriteCachedProfile("fp_test1");
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitch("list");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result->should_exit);
+  EXPECT_EQ(result->exit_code, 0);
+}
+
+TEST_F(StartupTest, FingerprintWithCachedProfile) {
+  WriteCachedProfile("fp_cached");
+  WriteConfigJson("test_key");
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_cached");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value()) << result.error();
+  EXPECT_FALSE(result->should_exit);
+  // Fingerprint should be loaded
+  ASSERT_NE(FingerprintAccessor::Get(), nullptr);
+  // Command line flags should be set
+  EXPECT_TRUE(cmd.HasSwitch("clawbrowser-fp-path"));
+  EXPECT_TRUE(cmd.HasSwitch("user-data-dir"));
+  EXPECT_TRUE(cmd.HasSwitch("proxy-server"));
+  EXPECT_TRUE(cmd.HasSwitch("lang"));
+  EXPECT_TRUE(cmd.HasSwitch("accept-lang"));
+}
+
+TEST_F(StartupTest, FingerprintNoApiKey) {
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_new");
+  // No cached profile, no API key → should fail
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result->should_exit);
+  EXPECT_EQ(result->exit_code, 1);
+}
+
+TEST_F(StartupTest, FingerprintApiCallSuccess) {
+  WriteConfigJson("test_key");
+  env_->SetVar("CLAWBROWSER_API_KEY", "test_key");
+
+  // Mock API response
+  std::string api_response = R"({
+    "fingerprint": {
+      "user_agent": "test-ua", "platform": "test",
+      "screen": {"width": 1920, "height": 1080, "avail_width": 1920,
+                 "avail_height": 1040, "color_depth": 24, "pixel_ratio": 1.0},
+      "hardware": {"concurrency": 8, "memory": 8},
+      "webgl": {"vendor": "test", "renderer": "test"},
+      "canvas_seed": 123, "audio_seed": 456, "client_rects_seed": 789,
+      "timezone": "UTC", "language": ["en"], "fonts": ["Arial"]
+    }
+  })";
+  url_loader_factory_.AddResponse(
+      "https://api.clawbrowser.ai/v1/fingerprints/generate",
+      api_response);
+
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_new_profile");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value()) << result.error();
+  EXPECT_FALSE(result->should_exit);
+  ASSERT_NE(FingerprintAccessor::Get(), nullptr);
+  EXPECT_EQ(FingerprintAccessor::Get()->user_agent, "test-ua");
+}
+
+TEST_F(StartupTest, FingerprintApiCall401) {
+  env_->SetVar("CLAWBROWSER_API_KEY", "bad_key");
+
+  url_loader_factory_.AddResponse(
+      "https://api.clawbrowser.ai/v1/fingerprints/generate",
+      R"({"code": "invalid_api_key", "message": "invalid API key"})",
+      net::HTTP_UNAUTHORIZED);
+
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_bad_key");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result->should_exit);
+  EXPECT_EQ(result->exit_code, 1);
+}
+
+TEST_F(StartupTest, RegenerateReplaysStoredParams) {
+  WriteCachedProfile("fp_regen");
+  env_->SetVar("CLAWBROWSER_API_KEY", "test_key");
+
+  // Mock API — we just need it to succeed
+  url_loader_factory_.AddResponse(
+      "https://api.clawbrowser.ai/v1/fingerprints/generate",
+      R"({
+        "fingerprint": {
+          "user_agent": "new-ua", "platform": "test",
+          "screen": {"width": 1920, "height": 1080, "avail_width": 1920,
+                     "avail_height": 1040, "color_depth": 24, "pixel_ratio": 1.0},
+          "hardware": {"concurrency": 8, "memory": 8},
+          "webgl": {"vendor": "v", "renderer": "r"},
+          "canvas_seed": 1, "audio_seed": 2, "client_rects_seed": 3,
+          "timezone": "UTC", "language": ["en"], "fonts": ["Arial"]
+        }
+      })");
+
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_regen");
+  cmd.AppendSwitch("regenerate");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value()) << result.error();
+  EXPECT_FALSE(result->should_exit);
+  // New fingerprint should be loaded
+  ASSERT_NE(FingerprintAccessor::Get(), nullptr);
+  EXPECT_EQ(FingerprintAccessor::Get()->user_agent, "new-ua");
+}
+
+TEST_F(StartupTest, VerboseLogging) {
+  WriteCachedProfile("fp_verbose");
+  WriteConfigJson("test_key");
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_verbose");
+  cmd.AppendSwitch("verbose");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(IsVerbose());
+}
+
+TEST_F(StartupTest, JsonErrorOutput) {
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_missing");
+  cmd.AppendSwitchASCII("output", "json");
+  // No cached profile, no API key → error
+  // Capture stdout to verify JSON output
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_EQ(result->exit_code, 1);
+}
+
+}  // namespace
+}  // namespace clawbrowser
+```
+
+- [ ] **Step 4: Update BUILD.gn**
 
 Add to `static_library("clawbrowser")` sources:
 ```
+    "logging.cc",
+    "logging.h",
     "startup.cc",
     "startup.h",
 ```
 
-- [ ] **Step 4: Commit**
+Add to `test("clawbrowser_unittests")` sources:
+```
+    "test/startup_unittest.cc",
+```
+
+- [ ] **Step 5: Run tests to verify they pass**
+
+Run: `autoninja -C out/Default clawbrowser_unittests && out/Default/clawbrowser_unittests --gtest_filter="StartupTest.*"`
+Expected: All 8 tests PASS
+
+- [ ] **Step 6: Commit**
 
 ```bash
-git add clawbrowser/startup.h clawbrowser/startup.cc clawbrowser/BUILD.gn
-git commit -m "feat(browser): add startup orchestration wiring all components
+git add clawbrowser/startup.h clawbrowser/startup.cc \
+  clawbrowser/logging.h clawbrowser/logging.cc \
+  clawbrowser/test/startup_unittest.cc clawbrowser/BUILD.gn
+git commit -m "feat(browser): add startup orchestration with verbose logging and unit tests
 
 Full startup flow: parse args, handle --list, resolve API key,
 check cache, API call if needed, save profile, load fingerprint,
 set --proxy-server, --lang, --accept-lang, --user-data-dir flags.
-Structured JSON error output with --output=json."
+Verbose-gated logging (default silent, --verbose enables).
+Structured JSON error output with --output=json.
+8 unit tests covering vanilla, list, cached, API success/failure,
+regenerate, verbose, and JSON error modes."
 ```
 
 ---
@@ -4123,32 +4522,92 @@ Two changes: force relay-only ICE transport, strip local candidates from SDP.
 
 Create `clawbrowser/patches/018-proxy-config.patch`:
 
-Patches the network stack to pre-load proxy auth credentials so Chromium doesn't show a proxy auth dialog. The `--proxy-server` flag is already set by `RunStartup()` (Task 10), so this patch handles only credential injection.
+Patches the network stack to automatically respond to proxy 407 auth challenges with stored credentials, so Chromium never shows a proxy auth dialog. The `--proxy-server` flag is already set by `RunStartup()` (Task 10).
 
-**Note on Network Service architecture:** In modern Chromium, the network stack runs in a separate process. Proxy auth credentials must be injected via the `NetworkContext` Mojo interface, not by directly accessing `HttpAuthCache`. The patch hooks into `ProfileNetworkContextService` or uses `network::mojom::NetworkContext::AddAuthCacheEntry()`.
+**Approach:** Implement a `LoginDelegate` that intercepts proxy auth challenges and responds with the fingerprint's proxy credentials. This works with the Network Service architecture (credentials stay in the browser process, no direct `HttpAuthCache` access needed).
 
-```diff
- // In chrome/browser/net/profile_network_context_service.cc
- // (or similar network context initialization):
-+#include "clawbrowser/fingerprint_accessor.h"
-+#include "clawbrowser/proxy/proxy_config.h"
+Create `clawbrowser/proxy/proxy_auth_login_delegate.h`:
 
-+  // Clawbrowser: pre-load proxy auth credentials via NetworkContext
-+  if (auto* proxy = clawbrowser::FingerprintAccessor::GetProxy()) {
-+    auto config = clawbrowser::BuildChromiumProxyConfig(*proxy);
-+    if (config) {
-+      network_context->AddAuthCacheEntry(
-+          net::AuthChallengeInfo(),  // proxy auth challenge
-+          net::NetworkAnonymizationKey(),
-+          net::AuthCredentials(
-+              base::UTF8ToUTF16(config->username),
-+              base::UTF8ToUTF16(config->password)),
-+          base::DoNothing());
-+    }
-+  }
+```cpp
+#ifndef CLAWBROWSER_PROXY_PROXY_AUTH_LOGIN_DELEGATE_H_
+#define CLAWBROWSER_PROXY_PROXY_AUTH_LOGIN_DELEGATE_H_
+
+#include "content/public/browser/login_delegate.h"
+
+namespace clawbrowser {
+
+// Automatically responds to proxy 407 challenges with stored credentials.
+// Created by ContentBrowserClient::CreateLoginDelegate() when
+// the challenge is for a proxy and fingerprint mode is active.
+class ProxyAuthLoginDelegate : public content::LoginDelegate {
+ public:
+  ProxyAuthLoginDelegate(
+      const net::AuthChallengeInfo& auth_info,
+      content::WebContents* web_contents,
+      LoginAuthRequiredCallback auth_required_callback);
+  ~ProxyAuthLoginDelegate() override;
+};
+
+}  // namespace clawbrowser
+
+#endif
 ```
 
-**Alternative approach:** If `AddAuthCacheEntry` proves difficult, use Chromium's `--proxy-auth` flag pattern or implement an `AuthChallengeResponder` that automatically responds to proxy 407 challenges with the stored credentials.
+Create `clawbrowser/proxy/proxy_auth_login_delegate.cc`:
+
+```cpp
+#include "clawbrowser/proxy/proxy_auth_login_delegate.h"
+
+#include "clawbrowser/fingerprint_accessor.h"
+#include "clawbrowser/proxy/proxy_config.h"
+#include "net/base/auth.h"
+
+namespace clawbrowser {
+
+ProxyAuthLoginDelegate::ProxyAuthLoginDelegate(
+    const net::AuthChallengeInfo& auth_info,
+    content::WebContents* web_contents,
+    LoginAuthRequiredCallback auth_required_callback) {
+  // Only auto-respond for proxy auth when fingerprint is active
+  const auto* proxy = FingerprintAccessor::GetProxy();
+  if (proxy && auth_info.is_proxy) {
+    auto config = BuildChromiumProxyConfig(*proxy);
+    if (config) {
+      std::move(auth_required_callback)
+          .Run(net::AuthCredentials(
+              base::UTF8ToUTF16(config->username),
+              base::UTF8ToUTF16(config->password)));
+      return;
+    }
+  }
+  // Not our challenge — cancel (will show default Chromium dialog)
+  std::move(auth_required_callback).Run(std::nullopt);
+}
+
+ProxyAuthLoginDelegate::~ProxyAuthLoginDelegate() = default;
+
+}  // namespace clawbrowser
+```
+
+The patch hooks into `ChromeContentBrowserClient::CreateLoginDelegate()`:
+
+```diff
+--- a/chrome/browser/chrome_content_browser_client.cc
++++ b/chrome/browser/chrome_content_browser_client.cc
+@@ -XX,6 +XX,8 @@
++#include "clawbrowser/fingerprint_accessor.h"
++#include "clawbrowser/proxy/proxy_auth_login_delegate.h"
+
+ // In ChromeContentBrowserClient::CreateLoginDelegate():
++  // Clawbrowser: auto-respond to proxy auth challenges
++  if (auth_info.is_proxy && clawbrowser::FingerprintAccessor::GetProxy()) {
++    return std::make_unique<clawbrowser::ProxyAuthLoginDelegate>(
++        auth_info, web_contents, std::move(auth_required_callback));
++  }
+   // ... existing login delegate creation ...
+```
+
+Add to BUILD.gn sources: `"proxy/proxy_auth_login_delegate.cc"`, `"proxy/proxy_auth_login_delegate.h"`.
 
 - [ ] **Step 3: Create patch 019 — verify page registration**
 
@@ -4685,10 +5144,14 @@ static_library("clawbrowser") {
     "fingerprint_loader.h",
     "generated/fingerprint_types.cc",
     "generated/fingerprint_types.h",
+    "logging.cc",
+    "logging.h",
     "noise/prng.cc",
     "noise/prng.h",
     "profile_envelope.cc",
     "profile_envelope.h",
+    "proxy/proxy_auth_login_delegate.cc",
+    "proxy/proxy_auth_login_delegate.h",
     "proxy/proxy_config.cc",
     "proxy/proxy_config.h",
     "startup.cc",
@@ -4715,6 +5178,7 @@ test("clawbrowser_unittests") {
     "test/profile_manager_unittest.cc",
     "test/prng_unittest.cc",
     "test/proxy_config_unittest.cc",
+    "test/startup_unittest.cc",
   ]
   deps = [
     ":clawbrowser",
