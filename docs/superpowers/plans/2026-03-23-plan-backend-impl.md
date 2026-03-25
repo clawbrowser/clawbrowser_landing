@@ -85,11 +85,16 @@ oapi-codegen.yaml                   # Code generation config
 config.yaml                         # Default config
 Dockerfile
 go.mod
+.github/
+  workflows/
+    ci.yaml                          # CI/CD: test, build, push, deploy trigger
 ```
 
 ---
 
 ### Task 1: Project Scaffolding
+
+**Prerequisite:** `api/openapi.yaml` must exist before Step 5 (code generation). This file is the API contract defined in the backend spec and must be created first. If it does not exist yet, create a minimal OpenAPI 3.0 spec with all 14 endpoints from the spec before running code generation.
 
 **Files:**
 - Create: `go.mod`
@@ -114,11 +119,12 @@ server:
 
 redis:
   url: redis://localhost:6379
+  db: 0  # Per-env DB number: dev=0, qa=1, prod=2 (see devops spec)
   ttl:
     customer: 10m
 
 postgres:
-  url: postgres://localhost:5432/clawbrowser
+  url: postgres://localhost:5432/clawbrowser  # In K8s, Sealed Secret sets search_path=clawbrowser_api
 
 auth0:
   domain: ""
@@ -127,6 +133,7 @@ auth0:
 unkey:
   url: http://localhost:3000
   root_key: ""
+  api_id: ""
 
 unibee:
   url: http://localhost:8088
@@ -141,6 +148,11 @@ mailersend:
   smtp_port: 587
   api_key: ""
   from: noreply@clawbrowser.ai
+
+webhooks:
+  auth0_secret: ""
+  unibee_secret: ""
+  signature_header: "X-Webhook-Signature"
 ```
 
 - [ ] **Step 3: Create oapi-codegen config**
@@ -275,6 +287,7 @@ type Config struct {
 	UniBee     UniBeeConfig     `mapstructure:"unibee"`
 	Nodemaven  NodemavenConfig  `mapstructure:"nodemaven"`
 	MailerSend MailerSendConfig `mapstructure:"mailersend"`
+	Webhooks   WebhooksConfig   `mapstructure:"webhooks"`
 }
 
 type ServerConfig struct {
@@ -282,7 +295,8 @@ type ServerConfig struct {
 }
 
 type RedisConfig struct {
-	URL string        `mapstructure:"url"`
+	URL string         `mapstructure:"url"`
+	DB  int            `mapstructure:"db"`
 	TTL RedisTTLConfig `mapstructure:"ttl"`
 }
 
@@ -302,6 +316,7 @@ type Auth0Config struct {
 type UnkeyConfig struct {
 	URL     string `mapstructure:"url"`
 	RootKey string `mapstructure:"root_key"`
+	APIID   string `mapstructure:"api_id"`
 }
 
 type UniBeeConfig struct {
@@ -319,6 +334,12 @@ type MailerSendConfig struct {
 	SMTPPort int    `mapstructure:"smtp_port"`
 	APIKey   string `mapstructure:"api_key"`
 	From     string `mapstructure:"from"`
+}
+
+type WebhooksConfig struct {
+	Auth0Secret     string `mapstructure:"auth0_secret"`
+	UniBeeSecret    string `mapstructure:"unibee_secret"`
+	SignatureHeader string `mapstructure:"signature_header"`
 }
 
 func Load(path string) (*Config, error) {
@@ -400,6 +421,7 @@ type Customer struct {
 
 type NodemavenCreds struct {
 	Host     string `json:"host"`
+	Port     int    `json:"port"`
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
@@ -443,6 +465,8 @@ git commit -m "feat: add domain model types for Customer and ApiKey"
 - [ ] **Step 1: Create customers migration (up)**
 
 Create `migrations/001_create_customers.up.sql`:
+
+**Note on schema isolation:** Per the DevOps spec, each environment uses schema-level isolation (e.g., `clawbrowser_api` schema). The `search_path` is set via the Postgres connection URL (e.g., `?search_path=clawbrowser_api`), so migrations run within the correct schema automatically. The connection URL in each K8s environment's Sealed Secret includes the `search_path` parameter. For local development, the default `public` schema is used.
 
 ```sql
 CREATE TABLE customers (
@@ -1040,11 +1064,12 @@ type RedisCache struct {
 	ttl    time.Duration
 }
 
-func NewRedisCache(redisURL string, ttl time.Duration) (*RedisCache, error) {
+func NewRedisCache(redisURL string, db int, ttl time.Duration) (*RedisCache, error) {
 	opts, err := redis.ParseURL(redisURL)
 	if err != nil {
 		return nil, fmt.Errorf("parse redis url: %w", err)
 	}
+	opts.DB = db
 	client := redis.NewClient(opts)
 	return &RedisCache{client: client, ttl: ttl}, nil
 }
@@ -1396,6 +1421,7 @@ func TestNodemavenClient_CreateSubClient(t *testing.T) {
 		json.NewEncoder(w).Encode(provider.NodemavenCreateSubClientResponse{
 			SubClientID: "sub_abc",
 			Host:        "proxy.nodemaven.com",
+			Port:        8080,
 			Username:    "user123",
 			Password:    "pass456",
 		})
@@ -1458,6 +1484,7 @@ type NodemavenCreateSubClientRequest struct {
 type NodemavenCreateSubClientResponse struct {
 	SubClientID string `json:"sub_client_id"`
 	Host        string `json:"host"`
+	Port        int    `json:"port"`
 	Username    string `json:"username"`
 	Password    string `json:"password"`
 }
@@ -1559,30 +1586,32 @@ import (
 )
 
 type Auth0Client struct {
-	domain   string
-	audience string
+	domain    string
+	audience  string
+	validator *validator.Validator
 }
 
 func NewAuth0Client(domain, audience string) *Auth0Client {
 	return &Auth0Client{domain: domain, audience: audience}
 }
 
-// NewJWTValidator creates a JWT validator using Auth0 JWKS.
-func (c *Auth0Client) NewJWTValidator() (*validator.Validator, error) {
+// InitValidator creates and caches the JWT validator. Call once at startup.
+func (c *Auth0Client) InitValidator() error {
 	issuerURL := fmt.Sprintf("https://%s/", c.domain)
 
 	provider := jwks.NewCachingProvider(issuerURL, 5*time.Minute)
 
-	jwtValidator, err := validator.New(
+	v, err := validator.New(
 		provider.KeyFunc,
 		validator.RS256,
 		issuerURL,
 		[]string{c.audience},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("create jwt validator: %w", err)
+		return fmt.Errorf("create jwt validator: %w", err)
 	}
-	return jwtValidator, nil
+	c.validator = v
+	return nil
 }
 
 // Auth0Claims represents the custom claims from an Auth0 JWT.
@@ -1593,12 +1622,11 @@ type Auth0Claims struct {
 
 // ValidateToken validates a JWT and returns the Auth0 user ID (sub claim).
 func (c *Auth0Client) ValidateToken(ctx context.Context, token string) (*Auth0Claims, error) {
-	v, err := c.NewJWTValidator()
-	if err != nil {
-		return nil, err
+	if c.validator == nil {
+		return nil, fmt.Errorf("validator not initialized, call InitValidator first")
 	}
 
-	claims, err := v.ValidateToken(ctx, token)
+	claims, err := c.validator.ValidateToken(ctx, token)
 	if err != nil {
 		return nil, fmt.Errorf("validate token: %w", err)
 	}
@@ -1977,8 +2005,21 @@ func TestGetPlatformPreset_MacOS(t *testing.T) {
 	}
 }
 
-func TestGetPlatformPreset_Unknown(t *testing.T) {
+func TestGetPlatformPreset_Windows(t *testing.T) {
 	preset := fingerprint.GetPlatformPreset("windows", "chrome")
+	if preset == nil {
+		t.Fatal("expected non-nil preset for windows/chrome")
+	}
+	if preset.Platform != "Win32" {
+		t.Errorf("expected Win32 platform, got %s", preset.Platform)
+	}
+	if len(preset.UserAgents) == 0 {
+		t.Error("expected at least one user agent")
+	}
+}
+
+func TestGetPlatformPreset_Unknown(t *testing.T) {
+	preset := fingerprint.GetPlatformPreset("freebsd", "lynx")
 	if preset != nil {
 		t.Error("expected nil for unsupported platform")
 	}
@@ -2085,13 +2126,61 @@ var macOSChromePreset = &PlatformPreset{
 	},
 }
 
+// windowsChromePreset contains curated real-world data for Chrome on Windows.
+var windowsChromePreset = &PlatformPreset{
+	Platform: "Win32",
+	Browser:  "chrome",
+	UserAgents: []string{
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
+		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+	},
+	Screens: []ScreenPreset{
+		{Width: 1920, Height: 1080, AvailWidth: 1920, AvailHeight: 1040, ColorDepth: 24, PixelRatio: 1},
+		{Width: 1366, Height: 768, AvailWidth: 1366, AvailHeight: 728, ColorDepth: 24, PixelRatio: 1},
+		{Width: 2560, Height: 1440, AvailWidth: 2560, AvailHeight: 1400, ColorDepth: 24, PixelRatio: 1},
+		{Width: 3840, Height: 2160, AvailWidth: 3840, AvailHeight: 2120, ColorDepth: 24, PixelRatio: 1.5},
+	},
+	Hardware: []HardwarePreset{
+		{Concurrency: 4, Memory: 8},
+		{Concurrency: 8, Memory: 16},
+		{Concurrency: 12, Memory: 16},
+		{Concurrency: 16, Memory: 32},
+	},
+	WebGL: []WebGLPreset{
+		{Vendor: "Google Inc. (NVIDIA)", Renderer: "ANGLE (NVIDIA, NVIDIA GeForce RTX 3060 Direct3D11 vs_5_0 ps_5_0, D3D11)"},
+		{Vendor: "Google Inc. (NVIDIA)", Renderer: "ANGLE (NVIDIA, NVIDIA GeForce RTX 4070 Direct3D11 vs_5_0 ps_5_0, D3D11)"},
+		{Vendor: "Google Inc. (AMD)", Renderer: "ANGLE (AMD, AMD Radeon RX 6700 XT Direct3D11 vs_5_0 ps_5_0, D3D11)"},
+		{Vendor: "Google Inc. (Intel)", Renderer: "ANGLE (Intel, Intel(R) UHD Graphics 770 Direct3D11 vs_5_0 ps_5_0, D3D11)"},
+	},
+	Fonts: []string{
+		"Arial", "Arial Black", "Calibri", "Cambria", "Comic Sans MS", "Consolas",
+		"Courier New", "Georgia", "Impact", "Lucida Console", "Segoe UI",
+		"Tahoma", "Times New Roman", "Trebuchet MS", "Verdana",
+	},
+	Plugins: []PluginPreset{
+		{Name: "PDF Viewer", Description: "Portable Document Format", Filename: "internal-pdf-viewer"},
+		{Name: "Chrome PDF Viewer", Description: "Portable Document Format", Filename: "internal-pdf-viewer"},
+		{Name: "Chromium PDF Viewer", Description: "Portable Document Format", Filename: "internal-pdf-viewer"},
+		{Name: "Microsoft Edge PDF Viewer", Description: "Portable Document Format", Filename: "internal-pdf-viewer"},
+		{Name: "WebKit built-in PDF", Description: "Portable Document Format", Filename: "internal-pdf-viewer"},
+	},
+	Voices: []string{
+		"Microsoft David", "Microsoft Zira", "Microsoft Mark",
+	},
+}
+
 // GetPlatformPreset returns curated data for a platform/browser pair.
 // Returns nil if the combination is not supported.
 func GetPlatformPreset(platform, browser string) *PlatformPreset {
-	if platform == "macos" && browser == "chrome" {
+	switch {
+	case platform == "macos" && browser == "chrome":
 		return macOSChromePreset
+	case platform == "windows" && browser == "chrome":
+		return windowsChromePreset
+	default:
+		return nil
 	}
-	return nil
 }
 ```
 
@@ -2462,8 +2551,8 @@ func (m *mockCustomerRepo) Delete(ctx context.Context, id uuid.UUID) error {
 
 type mockNodemaven struct{}
 
-func (m *mockNodemaven) CreateSubClient(ctx context.Context, email string) (subClientID, host, username, password string, err error) {
-	return "sub_123", "proxy.nodemaven.com", "user_123", "pass_456", nil
+func (m *mockNodemaven) CreateSubClient(ctx context.Context, email string) (subClientID, host string, port int, username, password string, err error) {
+	return "sub_123", "proxy.nodemaven.com", 8080, "user_123", "pass_456", nil
 }
 
 type mockUnkeyForCustomer struct{}
@@ -2529,7 +2618,7 @@ import (
 
 // NodemavenProvider abstracts the Nodemaven API for testability.
 type NodemavenProvider interface {
-	CreateSubClient(ctx context.Context, email string) (subClientID, host, username, password string, err error)
+	CreateSubClient(ctx context.Context, email string) (subClientID, host string, port int, username, password string, err error)
 }
 
 // UnkeyProvider abstracts Unkey key operations for testability.
@@ -2573,14 +2662,14 @@ func (s *CustomerService) Signup(ctx context.Context, auth0ID, email string, nam
 	}
 
 	// Step 2: Create Nodemaven sub-client
-	subClientID, host, username, password, err := s.nodemaven.CreateSubClient(ctx, email)
+	subClientID, host, port, username, password, err := s.nodemaven.CreateSubClient(ctx, email)
 	if err != nil {
 		slog.Error("nodemaven provisioning failed, will retry", "customer_id", customer.ID, "error", err)
 		return nil // Return nil so webhook returns 200 — retry job handles it
 	}
 
 	// Step 3: Store sub-client credentials
-	creds := model.NodemavenCreds{Host: host, Username: username, Password: password}
+	creds := model.NodemavenCreds{Host: host, Port: port, Username: username, Password: password}
 	if err := s.repo.UpdateNodemavenCredentials(ctx, customer.ID, subClientID, creds); err != nil {
 		return fmt.Errorf("update nodemaven credentials: %w", err)
 	}
@@ -2652,7 +2741,9 @@ git commit -m "feat: add customer service with signup orchestration"
 - Create: `internal/service/fingerprint.go`
 - Create: `internal/service/fingerprint_test.go`
 - Create: `internal/service/usage.go`
+- Create: `internal/service/usage_test.go`
 - Create: `internal/service/billing.go`
+- Create: `internal/service/billing_test.go`
 
 - [ ] **Step 1: Write failing test for API key service**
 
@@ -2962,7 +3053,116 @@ func (s *BillingService) CreatePortalSession(ctx context.Context, customerID str
 }
 ```
 
-- [ ] **Step 6: Run all tests to verify compilation**
+- [ ] **Step 6: Write tests for usage and billing services**
+
+Create `internal/service/usage_test.go`:
+
+```go
+package service_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/clawbrowser/clawbrowser-api/internal/service"
+)
+
+type mockUsageProvider struct{}
+
+func (m *mockUsageProvider) GetUsage(ctx context.Context, keyID string) (int, int, time.Time, time.Time, error) {
+	start := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	return 150, 42, start, end, nil
+}
+
+func (m *mockUsageProvider) GetUsageHistory(ctx context.Context, keyID, from, to, granularity string) ([]service.UsageDataPoint, error) {
+	return []service.UsageDataPoint{
+		{Date: "2026-03-01", FingerprintGenerations: 50, ProxyVerifications: 10},
+		{Date: "2026-03-02", FingerprintGenerations: 100, ProxyVerifications: 32},
+	}, nil
+}
+
+func TestUsageService_GetStats(t *testing.T) {
+	svc := service.NewUsageService(&mockUsageProvider{})
+	fingerprints, verifications, _, _, err := svc.GetStats(context.Background(), "key_123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if fingerprints != 150 {
+		t.Errorf("expected 150 fingerprints, got %d", fingerprints)
+	}
+	if verifications != 42 {
+		t.Errorf("expected 42 verifications, got %d", verifications)
+	}
+}
+
+func TestUsageService_GetHistory(t *testing.T) {
+	svc := service.NewUsageService(&mockUsageProvider{})
+	points, err := svc.GetHistory(context.Background(), "key_123", "2026-03-01", "2026-03-03", "day")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(points) != 2 {
+		t.Errorf("expected 2 data points, got %d", len(points))
+	}
+}
+```
+
+Create `internal/service/billing_test.go`:
+
+```go
+package service_test
+
+import (
+	"context"
+	"testing"
+	"time"
+
+	"github.com/clawbrowser/clawbrowser-api/internal/service"
+)
+
+type mockBillingProvider struct{}
+
+func (m *mockBillingProvider) GetSubscription(ctx context.Context, customerID string) (string, string, *time.Time, *time.Time, *int, *int, error) {
+	start := time.Date(2026, 3, 1, 0, 0, 0, 0, time.UTC)
+	end := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC)
+	limit := 10000
+	current := 150
+	return "pro", "active", &start, &end, &limit, &current, nil
+}
+
+func (m *mockBillingProvider) CreatePortalSession(ctx context.Context, customerID string) (string, error) {
+	return "https://billing.example.com/portal/abc123", nil
+}
+
+func TestBillingService_GetSubscription(t *testing.T) {
+	svc := service.NewBillingService(&mockBillingProvider{})
+	plan, status, _, _, _, _, err := svc.GetSubscription(context.Background(), "cust_123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if plan != "pro" {
+		t.Errorf("expected pro plan, got %s", plan)
+	}
+	if status != "active" {
+		t.Errorf("expected active status, got %s", status)
+	}
+}
+
+func TestBillingService_CreatePortalSession(t *testing.T) {
+	svc := service.NewBillingService(&mockBillingProvider{})
+	url, err := svc.CreatePortalSession(context.Background(), "cust_123")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if url == "" {
+		t.Error("expected non-empty portal URL")
+	}
+}
+```
+
+- [ ] **Step 7: Run all service tests**
 
 ```bash
 go test ./internal/service/ -v
@@ -2970,7 +3170,7 @@ go test ./internal/service/ -v
 
 Expected: PASS
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add internal/service/ internal/model/types.go
@@ -3610,12 +3810,11 @@ func (s *Server) PostV1FingerprintsGenerate(w http.ResponseWriter, r *http.Reque
 	}
 
 	if creds != nil && creds.Host != "" {
-		port := 8080
 		resp.Proxy = &gen.ProxyConfig{
 			Host:     &creds.Host,
 			Username: &creds.Username,
 			Password: &creds.Password,
-			Port:     &port,
+			Port:     &creds.Port,
 			Country:  &req.Country,
 		}
 	}
@@ -4225,7 +4424,7 @@ func main() {
 	}
 
 	// Connect to Redis
-	cache, err := store.NewRedisCache(cfg.Redis.URL, cfg.Redis.TTL.Customer)
+	cache, err := store.NewRedisCache(cfg.Redis.URL, cfg.Redis.DB, cfg.Redis.TTL.Customer)
 	if err != nil {
 		slog.Error("failed to connect to redis", "error", err)
 		os.Exit(1)
@@ -4240,15 +4439,18 @@ func main() {
 	unkeyClient := provider.NewUnkeyClient(cfg.Unkey.URL, cfg.Unkey.RootKey)
 	nodemavenClient := provider.NewNodemavenClient(cfg.Nodemaven.APIURL, cfg.Nodemaven.APIKey)
 	auth0Client := provider.NewAuth0Client(cfg.Auth0.Domain, cfg.Auth0.Audience)
+	if err := auth0Client.InitValidator(); err != nil {
+		slog.Error("failed to initialize Auth0 JWT validator", "error", err)
+		os.Exit(1)
+	}
 	mailerClient := provider.NewMailerSendClient(
 		cfg.MailerSend.SMTPHost, cfg.MailerSend.SMTPPort,
 		cfg.MailerSend.APIKey, cfg.MailerSend.From,
 	)
-	_ = auth0Client // Used for JWT validation below
 
 	// Initialize services
 	// Provider adapters (implement service interfaces)
-	unkeyAdapter := &unkeyProviderAdapter{client: unkeyClient}
+	unkeyAdapter := &unkeyProviderAdapter{client: unkeyClient, apiID: cfg.Unkey.APIID}
 	nodemavenAdapter := &nodemavenProviderAdapter{client: nodemavenClient}
 	usageAdapter := &usageProviderAdapter{client: unkeyClient}
 	billingAdapter := &billingProviderAdapter{client: provider.NewUniBeeClient(cfg.UniBee.URL, cfg.UniBee.APIKey)}
@@ -4265,7 +4467,8 @@ func main() {
 	unkeyVerifier := &unkeyVerifierAdapter{client: unkeyClient}
 	jwtValidator := &auth0ValidatorAdapter{client: auth0Client}
 
-	router := clawapi.NewRouter(server, unkeyVerifier, jwtValidator, "", "", "X-Webhook-Signature", pg, cache)
+	router := clawapi.NewRouter(server, unkeyVerifier, jwtValidator,
+		cfg.Webhooks.Auth0Secret, cfg.Webhooks.UniBeeSecret, cfg.Webhooks.SignatureHeader, pg, cache)
 
 	// Start HTTP server
 	httpServer := &http.Server{
@@ -4298,10 +4501,12 @@ func main() {
 
 type unkeyProviderAdapter struct {
 	client *provider.UnkeyClient
+	apiID  string
 }
 
 func (a *unkeyProviderAdapter) CreateKey(ctx context.Context, ownerID, name string) (keyID, key string, err error) {
 	resp, err := a.client.CreateKey(ctx, provider.UnkeyCreateKeyRequest{
+		APIID:   a.apiID,
 		OwnerID: ownerID,
 		Name:    name,
 	})
@@ -4319,12 +4524,12 @@ type nodemavenProviderAdapter struct {
 	client *provider.NodemavenClient
 }
 
-func (a *nodemavenProviderAdapter) CreateSubClient(ctx context.Context, email string) (subClientID, host, username, password string, err error) {
+func (a *nodemavenProviderAdapter) CreateSubClient(ctx context.Context, email string) (subClientID, host string, port int, username, password string, err error) {
 	resp, err := a.client.CreateSubClient(ctx, email)
 	if err != nil {
-		return "", "", "", "", err
+		return "", "", 0, "", "", err
 	}
-	return resp.SubClientID, resp.Host, resp.Username, resp.Password, nil
+	return resp.SubClientID, resp.Host, resp.Port, resp.Username, resp.Password, nil
 }
 
 type unkeyVerifierAdapter struct {
@@ -4662,11 +4867,11 @@ func (r *ProvisioningRetrier) RetryOnce(ctx context.Context) error {
 func (r *ProvisioningRetrier) provisionCustomer(ctx context.Context, c *model.Customer) error {
 	// If no Nodemaven credentials yet, create sub-client
 	if c.NodemavenSubClientID == nil {
-		subClientID, host, username, password, err := r.nodemaven.CreateSubClient(ctx, c.Email)
+		subClientID, host, port, username, password, err := r.nodemaven.CreateSubClient(ctx, c.Email)
 		if err != nil {
 			return fmt.Errorf("create nodemaven sub-client: %w", err)
 		}
-		creds := model.NodemavenCreds{Host: host, Username: username, Password: password}
+		creds := model.NodemavenCreds{Host: host, Port: port, Username: username, Password: password}
 		if err := r.repo.UpdateNodemavenCredentials(ctx, c.ID, subClientID, creds); err != nil {
 			return fmt.Errorf("update credentials: %w", err)
 		}
@@ -4749,7 +4954,208 @@ git commit -m "feat: add provisioning retry job for incomplete customer signups"
 
 ---
 
-### Task 24: Final Integration — Compile Check + Run All Tests
+### Task 24: Contract Tests (OpenAPI Validation)
+
+**Files:**
+- Create: `internal/api/contract_test.go`
+
+Per the spec's testing strategy: "Contract tests: Validate OpenAPI spec matches actual handler responses."
+
+- [ ] **Step 1: Write contract test**
+
+Create `internal/api/contract_test.go`:
+
+```go
+package api_test
+
+import (
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"os"
+	"testing"
+
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/getkin/kin-openapi/routers/gorillamux"
+	clawapi "github.com/clawbrowser/clawbrowser-api/internal/api"
+)
+
+func TestContract_HealthzNotInSpec(t *testing.T) {
+	// Health probes are infrastructure endpoints not in OpenAPI spec — verify they still work
+	router := clawapi.NewRouter(nil, nil, nil, "", "", "")
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+}
+
+func TestContract_LoadOpenAPISpec(t *testing.T) {
+	specPath := "../../api/openapi.yaml"
+	if _, err := os.Stat(specPath); os.IsNotExist(err) {
+		t.Skip("openapi.yaml not found, skipping contract tests")
+	}
+
+	loader := openapi3.NewLoader()
+	doc, err := loader.LoadFromFile(specPath)
+	if err != nil {
+		t.Fatalf("failed to load OpenAPI spec: %v", err)
+	}
+
+	if err := doc.Validate(loader.Context); err != nil {
+		t.Fatalf("invalid OpenAPI spec: %v", err)
+	}
+
+	// Verify all spec paths are present
+	expectedPaths := []string{
+		"/v1/fingerprints/generate",
+		"/v1/proxy/verify",
+		"/v1/me",
+		"/v1/api-keys",
+		"/v1/api-keys/{id}",
+		"/v1/api-keys/{id}/rotate",
+		"/v1/usage",
+		"/v1/usage/history",
+		"/v1/billing/subscription",
+		"/v1/billing/portal",
+		"/v1/webhooks/auth0",
+		"/v1/webhooks/unibee",
+	}
+
+	for _, path := range expectedPaths {
+		if doc.Paths.Find(path) == nil {
+			t.Errorf("expected path %s in OpenAPI spec", path)
+		}
+	}
+
+	// Build router for response validation in future tests
+	_, err = gorillamux.NewRouter(doc)
+	if err != nil {
+		t.Fatalf("failed to create OpenAPI router: %v", err)
+	}
+}
+```
+
+- [ ] **Step 2: Install kin-openapi dependency and run test**
+
+```bash
+go get github.com/getkin/kin-openapi
+go test ./internal/api/ -v -run TestContract
+```
+
+Expected: PASS (or SKIP if openapi.yaml not yet created).
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add internal/api/contract_test.go go.mod go.sum
+git commit -m "feat: add OpenAPI contract tests"
+```
+
+---
+
+### Task 25: CI/CD Workflow (ci.yaml)
+
+**Files:**
+- Create: `.github/workflows/ci.yaml`
+
+Per both the backend spec (section "App Repo CI Responsibilities") and devops spec (section "Build Flow"): on merge to `main`, the app repo must run tests, build Docker, tag with `v{semver}-{build_number}-{short_sha}`, push to Docker Hub, and fire `repository_dispatch` to `clawbrowser-infra`.
+
+- [ ] **Step 1: Create CI workflow**
+
+Create `.github/workflows/ci.yaml`:
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Run tests
+        run: go test ./... -v
+
+      - name: Run vet
+        run: go vet ./...
+
+  build-and-push:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Need tags for semver
+
+      - name: Get version components
+        id: version
+        run: |
+          # Get latest semver tag, default to v0.1.0
+          SEMVER=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "v0.1.0")
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          BUILD_NUMBER=${{ github.run_number }}
+          IMAGE_TAG="${SEMVER}-${BUILD_NUMBER}-${SHORT_SHA}"
+          echo "image_tag=${IMAGE_TAG}" >> "$GITHUB_OUTPUT"
+          echo "Image tag: ${IMAGE_TAG}"
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/clawbrowser-api:${{ steps.version.outputs.image_tag }}
+
+      - name: Trigger deploy to QA
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_REPO_GITHUB_APP_TOKEN }}
+          repository: ${{ github.repository_owner }}/clawbrowser-infra
+          event-type: deploy-api
+          client-payload: '{"image_tag": "${{ steps.version.outputs.image_tag }}"}'
+```
+
+- [ ] **Step 2: Verify YAML syntax**
+
+```bash
+python3 -c "import yaml; yaml.safe_load(open('.github/workflows/ci.yaml'))" && echo "Valid YAML"
+```
+
+Expected: "Valid YAML"
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add .github/workflows/ci.yaml
+git commit -m "feat: add CI/CD workflow with Docker build and infra repo dispatch"
+```
+
+---
+
+### Task 26: Final Integration — Compile Check + Run All Tests
 
 - [ ] **Step 1: Run all tests**
 
