@@ -11,9 +11,9 @@
 **Spec:** `docs/superpowers/specs/2026-03-23-clawbrowser-observability-design.md`
 **Backend Spec:** `docs/superpowers/specs/2026-03-22-clawbrowser-backend-design.md`
 
-**Prerequisites:** This plan builds on top of the backend implementation plan (`docs/superpowers/plans/2026-03-23-plan-backend-impl.md`). The backend's config, router, middleware, service, provider, and store packages must exist before this plan executes. The backend plan uses bare `slog.Error`/`slog.Info` calls — this plan replaces those with properly configured structured logging.
+**Prerequisites:** This plan builds on top of the backend implementation plan (`docs/superpowers/plans/2026-03-23-plan-backend-impl.md`). The backend's config, router, middleware, service, provider, and store packages must exist before this plan executes. The backend plan uses bare `slog.Error`/`slog.Info` calls — Task 11 replaces those with `observe.LogError()`/`observe.LogWarn()`/`observe.AuditLog()`. The backend plan already includes `Logging.Level` in its config struct and `logging.level: info` in `config.yaml`, and uses a `RouterDeps` struct extensible with `Logger`, `Metrics`, `Registry` fields.
 
-**Repo context:** Tasks 1–10 target `clawbrowser-api`. Tasks 11–13 target `clawbrowser-infra` (the Grafana dashboard ConfigMaps that pair with the observability stack deployed by devops plan Task 13).
+**Repo context:** Tasks 1–11 target `clawbrowser-api`. Tasks 12–14 target `clawbrowser-infra` (the Grafana dashboard ConfigMaps that pair with the observability stack deployed by devops plan Task 13).
 
 ---
 
@@ -41,8 +41,14 @@ internal/
     metrics_wrapper.go              # Provider call duration/error instrumentation
     metrics_wrapper_test.go
   config/
-    config.go                       # Modified: add Logging.Level field
+    config.go                       # Modified: add Logging.Level field (already added by backend plan)
     config_test.go                  # Modified: add logging level test
+  store/
+    cache.go                        # Modified: add *observe.Metrics to RedisCache/NewRedisCache
+    cache_test.go                   # Modified: add cache metrics assertions
+  service/
+    customer.go                     # Modified: add *observe.Metrics to ProvisioningRetrier
+    customer_test.go                # Modified: add retry metrics assertions
 ```
 
 ### clawbrowser-infra additions
@@ -1342,11 +1348,13 @@ git commit -m "feat: add provider metrics wrapper for duration and error trackin
 
 ### Task 8: Cache and Signup Retry Metrics Instrumentation
 
+**Backend plan reference:** The backend plan creates `RedisCache` struct with `NewRedisCache(redisURL, db, ttl)` in `internal/store/cache.go`. This task renames it to `RedisCache` (keeping the name) but adds `*observe.Metrics` as a parameter. The backend plan also creates `ProvisioningRetrier` (not `CustomerService`) for retry logic — see `NewProvisioningRetrier(repo, nodemaven, unkey, mailer)` in `internal/service/customer.go`.
+
 **Files:**
-- Modify: `internal/store/cache.go` — add metrics to Get (hit/miss)
+- Modify: `internal/store/cache.go` — add `*observe.Metrics` to `RedisCache` and `NewRedisCache`
 - Modify: `internal/store/cache_test.go` — add metrics assertions
-- Modify: `internal/service/customer.go` — add retry metrics
-- Modify: `internal/service/customer_test.go` — add retry metrics assertions
+- Modify: `internal/service/customer.go` — add `*observe.Metrics` to `ProvisioningRetrier`
+- Modify: `internal/service/customer_test.go` — add retry metrics assertions (uses `ProvisioningRetrier`, not `CustomerService`)
 
 - [ ] **Step 1: Write failing test for cache metrics**
 
@@ -1357,7 +1365,7 @@ func TestCache_Get_RecordsHitMetric(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := observe.NewMetrics(reg)
 
-	cache := store.NewCache(redisClient, m, 10*time.Minute)
+	cache := store.NewRedisCache(redisURL, db, m, 10*time.Minute)
 	// Pre-populate cache
 	cache.Set(ctx, "customer:key123", testCustomer)
 
@@ -1383,7 +1391,7 @@ func TestCache_Get_RecordsMissMetric(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := observe.NewMetrics(reg)
 
-	cache := store.NewCache(redisClient, m, 10*time.Minute)
+	cache := store.NewRedisCache(redisURL, db, m, 10*time.Minute)
 
 	_, err := cache.Get(ctx, "customer:nonexistent")
 	// Miss returns ErrCacheMiss or nil value
@@ -1409,41 +1417,49 @@ func TestCache_Get_RecordsMissMetric(t *testing.T) {
 go test ./internal/store/ -run "TestCache_Get_Records" -v
 ```
 
-Expected: FAIL — `NewCache` does not accept metrics parameter yet.
+Expected: FAIL — `NewRedisCache` does not accept `*observe.Metrics` parameter yet.
 
-- [ ] **Step 3: Add metrics parameter to Cache**
+- [ ] **Step 3: Add metrics parameter to RedisCache**
 
-Modify `internal/store/cache.go` — update `Cache` struct and `NewCache` to accept `*observe.Metrics`:
+Modify `internal/store/cache.go` — add `*observe.Metrics` field to `RedisCache` struct and `NewRedisCache` constructor. The backend plan's existing `NewRedisCache(redisURL string, db int, ttl time.Duration)` becomes `NewRedisCache(redisURL string, db int, metrics *observe.Metrics, ttl time.Duration)`:
 
 ```go
-type Cache struct {
+type RedisCache struct {
 	client  *redis.Client
 	metrics *observe.Metrics
 	ttl     time.Duration
 }
 
-func NewCache(client *redis.Client, metrics *observe.Metrics, ttl time.Duration) *Cache {
-	return &Cache{client: client, metrics: metrics, ttl: ttl}
+func NewRedisCache(redisURL string, db int, metrics *observe.Metrics, ttl time.Duration) (*RedisCache, error) {
+	opts, err := redis.ParseURL(redisURL)
+	if err != nil {
+		return nil, fmt.Errorf("parse redis url: %w", err)
+	}
+	opts.DB = db
+	client := redis.NewClient(opts)
+	return &RedisCache{client: client, metrics: metrics, ttl: ttl}, nil
 }
 
-func (c *Cache) Get(ctx context.Context, key string) (*model.Customer, error) {
-	val, err := c.client.Get(ctx, key).Result()
+func (c *RedisCache) GetCustomerByUnkeyKeyID(ctx context.Context, unkeyKeyID string) (*model.Customer, error) {
+	data, err := c.client.Get(ctx, customerCacheKey(unkeyKeyID)).Bytes()
 	if err == redis.Nil {
 		c.metrics.CacheMissesTotal.Inc()
-		return nil, ErrCacheMiss
+		return nil, nil
 	}
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("redis get: %w", err)
 	}
 	c.metrics.CacheHitsTotal.Inc()
 
 	var customer model.Customer
-	if err := json.Unmarshal([]byte(val), &customer); err != nil {
-		return nil, err
+	if err := json.Unmarshal(data, &customer); err != nil {
+		return nil, fmt.Errorf("unmarshal cached customer: %w", err)
 	}
 	return &customer, nil
 }
 ```
+
+**Note:** Also update `main.go` call site from `store.NewRedisCache(cfg.Redis.URL, cfg.Redis.DB, cfg.Redis.TTL.Customer)` to `store.NewRedisCache(cfg.Redis.URL, cfg.Redis.DB, metrics, cfg.Redis.TTL.Customer)`.
 
 - [ ] **Step 4: Run cache tests**
 
@@ -1455,23 +1471,29 @@ Expected: PASS.
 
 - [ ] **Step 5: Write failing test for signup retry metrics**
 
-Add to `internal/service/customer_test.go`:
+Add to `internal/service/customer_test.go`. **Note:** The backend plan uses `ProvisioningRetrier` (not `CustomerService`) for retry logic. The retrier has `RetryOnce(ctx)` method, not `RunRetryJob`.
 
 ```go
 func TestRetryJob_IncrementsRetryMetric(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	m := observe.NewMetrics(reg)
 
-	svc := service.NewCustomerService(mockStore, mockNodemaven, mockUnkey, mockMailer, m)
-	// Set up a customer in "provisioning" state where Nodemaven will fail
-	mockNodemaven.CreateSubClientFunc = func(ctx context.Context, email string) (string, error) {
-		return "", errors.New("timeout")
+	repo := &mockProvisioningRepo{
+		customers: []*model.Customer{
+			{ID: uuid.New(), Auth0ID: "auth0|1", Email: "test@example.com", Status: model.CustomerStatusProvisioning, CreatedAt: time.Now().Add(-2 * time.Minute)},
+		},
+		updated:     make(map[uuid.UUID]model.CustomerStatus),
+		retryCounts: make(map[uuid.UUID]int),
 	}
-	mockStore.ListProvisioningFunc = func(ctx context.Context) ([]model.Customer, error) {
-		return []model.Customer{{ID: "cust_1", Status: "provisioning"}}, nil
-	}
+	nodemaven := &mockNodemavenFailing{} // CreateSubClient returns error
+	unkey := &mockUnkeyForCustomer{}
+	mailer := &mockMailer{}
 
-	svc.RunRetryJob(ctx)
+	retrier := service.NewProvisioningRetrier(repo, nodemaven, unkey, mailer, m)
+	err := retrier.RetryOnce(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	families, _ := reg.Gather()
 	for _, f := range families {
@@ -1493,31 +1515,39 @@ func TestRetryJob_IncrementsRetryMetric(t *testing.T) {
 go test ./internal/service/ -run TestRetryJob_IncrementsRetryMetric -v
 ```
 
-Expected: FAIL — `NewCustomerService` does not accept metrics parameter yet.
+Expected: FAIL — `NewProvisioningRetrier` does not accept `*observe.Metrics` parameter yet.
 
-- [ ] **Step 7: Add metrics to CustomerService retry job**
+- [ ] **Step 7: Add metrics to ProvisioningRetrier**
 
-Modify `internal/service/customer.go` — update `CustomerService` to accept `*observe.Metrics` and increment `SignupRetriesTotal` in the retry loop:
+Modify `internal/service/customer.go` — update `ProvisioningRetrier` (not `CustomerService`) to accept `*observe.Metrics` and increment `SignupRetriesTotal` in the retry loop:
 
 ```go
-type CustomerService struct {
-	store     CustomerStore
-	nodemaven NodemavenClient
-	unkey     UnkeyClient
-	mailer    MailerClient
+type ProvisioningRetrier struct {
+	repo      store.CustomerRepository
+	nodemaven NodemavenProvider
+	unkey     UnkeyProvider
+	mailer    Mailer
 	metrics   *observe.Metrics
 }
 
-func NewCustomerService(store CustomerStore, nodemaven NodemavenClient, unkey UnkeyClient, mailer MailerClient, metrics *observe.Metrics) *CustomerService {
-	return &CustomerService{store: store, nodemaven: nodemaven, unkey: unkey, mailer: mailer, metrics: metrics}
+func NewProvisioningRetrier(
+	repo store.CustomerRepository,
+	nodemaven NodemavenProvider,
+	unkey UnkeyProvider,
+	mailer Mailer,
+	metrics *observe.Metrics,
+) *ProvisioningRetrier {
+	return &ProvisioningRetrier{repo: repo, nodemaven: nodemaven, unkey: unkey, mailer: mailer, metrics: metrics}
 }
 ```
 
-In the retry loop, before each retry attempt:
+In `RetryOnce`, before each retry attempt on a customer:
 
 ```go
-s.metrics.SignupRetriesTotal.WithLabelValues("nodemaven").Inc()
+r.metrics.SignupRetriesTotal.WithLabelValues("nodemaven").Inc()
 ```
+
+**Note:** Also update `main.go` call site from `service.NewProvisioningRetrier(customerRepo, nodemavenAdapter, unkeyAdapter, mailerClient)` to `service.NewProvisioningRetrier(customerRepo, nodemavenAdapter, unkeyAdapter, mailerClient, metrics)`.
 
 - [ ] **Step 8: Run all tests**
 
@@ -1717,11 +1747,11 @@ func main() {
 
 	// ... existing DB, Redis, provider setup ...
 
-	// Pass metrics to cache
-	cache := store.NewCache(redisClient, metrics, cfg.Redis.TTL.Customer)
+	// Pass metrics to cache (adds *observe.Metrics param to existing NewRedisCache)
+	cache, err := store.NewRedisCache(cfg.Redis.URL, cfg.Redis.DB, metrics, cfg.Redis.TTL.Customer)
 
-	// Pass metrics to customer service
-	customerSvc := service.NewCustomerService(customerRepo, nodemavenClient, unkeyClient, mailerClient, metrics)
+	// Pass metrics to provisioning retrier (adds *observe.Metrics param to existing NewProvisioningRetrier)
+	retrier := service.NewProvisioningRetrier(customerRepo, nodemavenAdapter, unkeyAdapter, mailerClient, metrics)
 
 	// ... existing server setup ...
 
@@ -1762,7 +1792,145 @@ git commit -m "feat: wire observability (logger, metrics, registry) into main.go
 
 ---
 
-### Task 11: Grafana Dashboard Provisioning Setup
+### Task 11: Webhook Audit Logging + Bare slog.Error Replacement
+
+**Context:** The observability spec requires structured audit events for security-relevant actions (webhook receipts, auth failures, key rotations) and ERROR-level logs with stack traces. The backend plan uses bare `slog.Error`/`slog.Info`/`slog.Warn` calls that lack these structured fields. This task replaces them with `observe.AuditLog()` and `observe.LogError()`/`observe.LogWarn()`.
+
+**Files:**
+- Modify: `internal/api/server.go` — add audit logging to webhook handlers
+- Modify: `internal/service/customer.go` — replace bare `slog.Error` with `observe.LogError`/`observe.LogWarn`
+- Modify: `internal/service/customer.go` — replace bare `slog.Error` in `ProvisioningRetrier` with `observe.LogError`
+
+**Bare `slog` calls to replace:**
+
+| File | Call | Replacement |
+|------|------|-------------|
+| `server.go` `PostV1WebhooksAuth0` | (no logging) | Add `observe.AuditLog(logger, "webhook.received", payload.UserId, "auth0")` |
+| `server.go` `PostV1WebhooksUnibee` | `slog.Info("unibee: payment succeeded", ...)` | `observe.AuditLog(logger, "webhook.received", "", "unibee")` + keep event-specific log |
+| `server.go` `PostV1WebhooksUnibee` | `slog.Warn("unibee: payment failed", ...)` | `observe.AuditLog(logger, "webhook.received", "", "unibee")` + `observe.LogWarn(logger, ...)` |
+| `customer.go` Signup | `slog.Error("nodemaven provisioning failed, will retry", ...)` | `observe.LogWarn(logger, err, "nodemaven provisioning failed, will retry", "customer_id", customer.ID)` |
+| `customer.go` Signup | `slog.Error("unkey key creation failed, will retry", ...)` | `observe.LogWarn(logger, err, "unkey key creation failed, will retry", "customer_id", customer.ID)` |
+| `customer.go` Signup | `slog.Error("welcome email failed", ...)` | `observe.LogWarn(logger, err, "welcome email failed", "customer_id", customer.ID)` |
+| `customer.go` RetryOnce | `slog.Error("failed to increment retry count", ...)` | `observe.LogError(logger, err, "failed to increment retry count", "customer_id", c.ID)` |
+| `customer.go` RetryOnce | `slog.Error("provisioning failed after max retries", ...)` | `observe.LogError(logger, err, "provisioning failed after max retries", "customer_id", c.ID, "retry_count", retryCount)` |
+| `customer.go` RetryOnce | `slog.Error("failed to mark provisioning_failed", ...)` | `observe.LogError(logger, err, "failed to mark provisioning_failed", "customer_id", c.ID)` |
+| `customer.go` RetryOnce | `slog.Error("retry provisioning failed", ...)` | `observe.LogError(logger, err, "retry provisioning failed", "customer_id", c.ID, "retry_count", retryCount)` |
+| `customer.go` StartRetryLoop | `slog.Error("retry loop error", ...)` | `observe.LogError(logger, err, "retry loop error")` |
+| `apikey.go` | `slog.Error("cache invalidation failed", ...)` | `observe.LogWarn(logger, err, "cache invalidation failed")` |
+
+**Note:** The `slog.Error`/`slog.Info` calls in `main.go` (startup failures, shutdown, server start) remain as bare calls — they run before the structured logger is initialized or are simple lifecycle messages.
+
+- [ ] **Step 1: Add audit logging to Auth0 webhook handler**
+
+Modify `internal/api/server.go` — the `PostV1WebhooksAuth0` handler needs `observe.AuditLog` before the signup call:
+
+```go
+func (s *Server) PostV1WebhooksAuth0(w http.ResponseWriter, r *http.Request) {
+	var payload gen.Auth0WebhookPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_payload", "Invalid webhook payload")
+		return
+	}
+
+	logger := observe.LoggerFromContext(r.Context())
+	observe.AuditLog(logger, "webhook.received", payload.UserId, "auth0")
+
+	if err := s.customerSvc.Signup(r.Context(), payload.UserId, string(payload.Email), payload.Name); err != nil {
+		writeError(w, http.StatusInternalServerError, "signup_failed", err.Error())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+- [ ] **Step 2: Add audit logging to UniBee webhook handler**
+
+Modify `internal/api/server.go` — replace bare `slog.Info`/`slog.Warn` with audit + structured logging:
+
+```go
+func (s *Server) PostV1WebhooksUnibee(w http.ResponseWriter, r *http.Request) {
+	var payload gen.UniBeeWebhookPayload
+	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid_payload", "Invalid webhook payload")
+		return
+	}
+
+	logger := observe.LoggerFromContext(r.Context())
+	observe.AuditLog(logger, "webhook.received", "", "unibee")
+
+	switch payload.Event {
+	case gen.UniBeeWebhookPayloadEventPaymentSucceeded:
+		logger.Info("unibee: payment succeeded", "event", string(payload.Event), "data", payload.Data)
+	case gen.UniBeeWebhookPayloadEventPaymentFailed:
+		logger.Warn("unibee: payment failed", "event", string(payload.Event), "data", payload.Data)
+	case gen.UniBeeWebhookPayloadEventSubscriptionUpdated:
+		logger.Info("unibee: subscription updated", "event", string(payload.Event), "data", payload.Data)
+	case gen.UniBeeWebhookPayloadEventSubscriptionCancelled:
+		logger.Info("unibee: subscription cancelled", "event", string(payload.Event), "data", payload.Data)
+	default:
+		logger.Warn("unibee: unknown event", "event", string(payload.Event))
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+```
+
+- [ ] **Step 3: Replace bare slog.Error calls in customer.go service layer**
+
+Modify `internal/service/customer.go` — the `Signup` method's error calls are recoverable (return nil for retry), so use `LogWarn`:
+
+```go
+// In Signup, replace:
+//   slog.Error("nodemaven provisioning failed, will retry", "customer_id", customer.ID, "error", err)
+// With:
+logger := observe.LoggerFromContext(ctx)
+observe.LogWarn(logger, err, "nodemaven provisioning failed, will retry", "customer_id", customer.ID, "component", "service")
+```
+
+Apply the same pattern to the other two `slog.Error` calls in `Signup` (unkey key creation, welcome email).
+
+- [ ] **Step 4: Replace bare slog.Error calls in ProvisioningRetrier**
+
+Modify `internal/service/customer.go` — the `RetryOnce` method's errors are real failures, so use `LogError` (includes stack trace):
+
+```go
+// In RetryOnce, replace each bare slog.Error with observe.LogError:
+logger := observe.LoggerFromContext(ctx)
+observe.LogError(logger, err, "failed to increment retry count", "customer_id", c.ID, "component", "service")
+```
+
+Apply to all 4 `slog.Error` calls in `RetryOnce` and the 1 in `StartRetryLoop`.
+
+- [ ] **Step 5: Replace bare slog.Error in apikey.go**
+
+Modify `internal/service/apikey.go` — cache invalidation failure is recoverable:
+
+```go
+// Replace:
+//   slog.Error("cache invalidation failed", "error", err)
+// With:
+observe.LogWarn(observe.LoggerFromContext(ctx), err, "cache invalidation failed", "component", "service")
+```
+
+- [ ] **Step 6: Run all tests**
+
+```bash
+go test ./internal/api/ ./internal/service/ -v
+```
+
+Expected: PASS. The `observe.LoggerFromContext(ctx)` calls return the default logger in tests (no middleware injecting one), which is fine for unit tests.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add internal/api/server.go internal/service/customer.go internal/service/apikey.go
+git commit -m "feat: add webhook audit logging and replace bare slog calls with structured observe helpers"
+```
+
+---
+
+### Task 12: Grafana Dashboard Provisioning Setup
 
 **Files (in clawbrowser-infra):**
 - Create: `k8s/cluster-wide/observability/grafana/dashboards-provider.yaml`
@@ -1848,7 +2016,7 @@ git commit -m "feat: add Grafana dashboard provisioning config and volume mounts
 
 ---
 
-### Task 12: Grafana Metrics Dashboards
+### Task 13: Grafana Metrics Dashboards
 
 **Files (in clawbrowser-infra):**
 - Create: `k8s/cluster-wide/observability/grafana/dashboards-configmap.yaml`
@@ -2142,7 +2310,7 @@ git commit -m "feat: add Grafana metrics dashboards (request overview, provider 
 
 ---
 
-### Task 13: Grafana Logs Dashboards
+### Task 14: Grafana Logs Dashboards
 
 **Files (in clawbrowser-infra):**
 - Modify: `k8s/cluster-wide/observability/grafana/dashboards-configmap.yaml` — add logs dashboard entries
