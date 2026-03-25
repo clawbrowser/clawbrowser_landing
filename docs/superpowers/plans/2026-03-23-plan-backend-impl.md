@@ -4176,6 +4176,8 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 **Note:** The exact method signatures in `server.go` depend on the generated `ServerInterface`. The method names and parameter types above are approximations based on oapi-codegen's default naming. After code generation (Task 1), adjust method signatures to match `gen.ServerInterface` exactly. The compile-time check in the test will catch any mismatches.
 
+**Observability note:** The webhook handlers use bare `slog.Info`/`slog.Warn` calls. The observability plan (Task 11) replaces these with `observe.AuditLog()` for structured audit events (`webhook.received`) and context-scoped loggers. The `Signup` service method's `slog.Error` calls are also replaced with `observe.LogWarn()` (recoverable errors) and `observe.LogError()` (fatal errors with stack traces).
+
 - [ ] **Step 4: Run tests to verify compilation and interface compliance**
 
 ```bash
