@@ -896,7 +896,7 @@ base::expected<ProfileEnvelope, std::string> ProfileEnvelope::Parse(
   // schema_version
   auto schema_version = root.FindInt("schema_version");
   if (!schema_version) {
-    return base::unexpected("missing field: schema_version");
+    return base::unexpected("fingerprint missing field: schema_version");
   }
   envelope.schema_version = *schema_version;
   envelope.schema_outdated =
@@ -905,7 +905,7 @@ base::expected<ProfileEnvelope, std::string> ProfileEnvelope::Parse(
   // created_at
   const std::string* created_at = root.FindString("created_at");
   if (!created_at) {
-    return base::unexpected("missing field: created_at");
+    return base::unexpected("fingerprint missing field: created_at");
   }
   envelope.created_at = *created_at;
 
@@ -927,7 +927,7 @@ base::expected<ProfileEnvelope, std::string> ProfileEnvelope::Parse(
   // response — delegate to generated parser
   const base::Value::Dict* response = root.FindDict("response");
   if (!response) {
-    return base::unexpected("missing field: response");
+    return base::unexpected("fingerprint missing field: response");
   }
 
   auto generate_response = GenerateResponse::FromDict(*response);
@@ -2128,6 +2128,26 @@ TEST_F(ProfileManagerTest, SaveAndReadEnvelope) {
   EXPECT_EQ(read_result->schema_version, 1);
 }
 
+TEST_F(ProfileManagerTest, SaveProfileDirectoryNotWritable) {
+  // Create a read-only directory to simulate write failure
+  base::FilePath readonly_dir = temp_dir_.GetPath().AppendASCII("readonly");
+  ASSERT_TRUE(base::CreateDirectory(readonly_dir));
+  ASSERT_TRUE(base::SetPosixFilePermissions(readonly_dir, 0555));
+
+  ProfileManager readonly_manager(readonly_dir);
+  ProfileEnvelope envelope;
+  envelope.schema_version = 1;
+  envelope.created_at = "2026-03-23T10:00:00Z";
+  envelope.request = {"linux", "chrome", "US", "", ""};
+
+  auto result = readonly_manager.SaveProfile("fp_fail", envelope);
+  EXPECT_FALSE(result.has_value());
+  EXPECT_FALSE(result.error().empty());
+
+  // Cleanup: restore permissions so temp dir cleanup works
+  base::SetPosixFilePermissions(readonly_dir, 0755);
+}
+
 }  // namespace
 }  // namespace clawbrowser
 ```
@@ -2373,7 +2393,7 @@ Add to `test("clawbrowser_unittests")` sources:
 - [ ] **Step 6: Run tests to verify they pass**
 
 Run: `autoninja -C out/Default clawbrowser_unittests && out/Default/clawbrowser_unittests --gtest_filter="ProfileManagerTest.*"`
-Expected: All 9 tests PASS
+Expected: All 10 tests PASS (includes SaveProfileDirectoryNotWritable)
 
 - [ ] **Step 7: Commit**
 
@@ -3324,6 +3344,7 @@ Create `clawbrowser/startup.cc`:
 #include "clawbrowser/startup.h"
 
 #include "base/json/json_writer.h"
+#include "base/strings/string_util.h"
 #include "base/values.h"
 #include "clawbrowser/cli/api_client.h"
 #include "clawbrowser/cli/args.h"
@@ -3405,9 +3426,9 @@ base::expected<StartupResult, std::string> RunStartup(
 
   // Fingerprint mode
   const std::string& fp_id = args.fingerprint_id();
-  if (fp_id.empty()) {
+  if (fp_id.empty() || !base::StartsWith(fp_id, "fp_")) {
     PrintError(args, "invalid_fingerprint_id",
-               "invalid fingerprint ID: (empty)");
+               "invalid fingerprint ID: must start with 'fp_', got: " + fp_id);
     result.should_exit = true;
     result.exit_code = 1;
     return result;
@@ -3684,6 +3705,24 @@ TEST_F(StartupTest, FingerprintApiCallSuccess) {
   EXPECT_EQ(FingerprintAccessor::Get()->user_agent, "test-ua");
 }
 
+TEST_F(StartupTest, EmptyFingerprintIdExitsWithError) {
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result->should_exit);
+  EXPECT_EQ(result->exit_code, 1);
+}
+
+TEST_F(StartupTest, InvalidFingerprintIdPrefixExitsWithError) {
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "not_a_valid_id");
+  auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  ASSERT_TRUE(result.has_value());
+  EXPECT_TRUE(result->should_exit);
+  EXPECT_EQ(result->exit_code, 1);
+}
+
 TEST_F(StartupTest, FingerprintApiCall401) {
   env_->SetVar("CLAWBROWSER_API_KEY", "bad_key");
 
@@ -3746,10 +3785,35 @@ TEST_F(StartupTest, JsonErrorOutput) {
   cmd.AppendSwitchASCII("fingerprint", "fp_missing");
   cmd.AppendSwitchASCII("output", "json");
   // No cached profile, no API key → error
-  // Capture stdout to verify JSON output
+
+  // Capture stdout to verify JSON error format
+  testing::internal::CaptureStdout();
   auto result = RunStartup(&cmd, url_loader_factory_.GetSafeWeakWrapper());
+  std::string stdout_output = testing::internal::GetCapturedStdout();
   ASSERT_TRUE(result.has_value());
   EXPECT_EQ(result->exit_code, 1);
+
+  // Verify JSON output contains error code and message
+  auto parsed = base::JSONReader::Read(stdout_output);
+  ASSERT_TRUE(parsed.has_value()) << "stdout not valid JSON: " << stdout_output;
+  ASSERT_TRUE(parsed->is_dict());
+  const std::string* error_code = parsed->GetDict().FindString("error");
+  ASSERT_NE(error_code, nullptr);
+  EXPECT_EQ(*error_code, "no_api_key");
+  const std::string* message = parsed->GetDict().FindString("message");
+  ASSERT_NE(message, nullptr);
+  EXPECT_FALSE(message->empty());
+}
+
+TEST_F(StartupTest, MultipleFingerprintFlagsLastWins) {
+  // When --fingerprint is specified multiple times, last value wins
+  base::CommandLine cmd(base::CommandLine::NO_PROGRAM);
+  cmd.AppendSwitchASCII("fingerprint", "fp_first");
+  cmd.AppendSwitchASCII("fingerprint", "fp_second");
+
+  ClawArgs args = ClawArgs::Parse(cmd);
+  // base::CommandLine last-wins semantics for duplicate switches
+  EXPECT_EQ(args.fingerprint_id(), "fp_second");
 }
 
 }  // namespace
@@ -3774,7 +3838,7 @@ Add to `test("clawbrowser_unittests")` sources:
 - [ ] **Step 5: Run tests to verify they pass**
 
 Run: `autoninja -C out/Default clawbrowser_unittests && out/Default/clawbrowser_unittests --gtest_filter="StartupTest.*"`
-Expected: All 8 tests PASS
+Expected: All 12 tests PASS (includes JsonErrorOutput content verification, MultipleFingerprintFlagsLastWins, EmptyFingerprintIdExitsWithError, InvalidFingerprintIdPrefixExitsWithError)
 
 - [ ] **Step 6: Commit**
 
@@ -3789,13 +3853,20 @@ check cache, API call if needed, save profile, load fingerprint,
 set --proxy-server, --lang, --accept-lang, --user-data-dir flags.
 Verbose-gated logging (default silent, --verbose enables).
 Structured JSON error output with --output=json.
-8 unit tests covering vanilla, list, cached, API success/failure,
-regenerate, verbose, and JSON error modes."
+12 unit tests covering vanilla, list, cached, API success/failure,
+regenerate, verbose, JSON error output verification, multiple flags
+last-wins, empty/invalid fingerprint ID prefix validation."
 ```
 
 ---
 
 ### Task 11: Process Init Patches (001–004)
+
+**Patch version convention:** Every patch file MUST include a version header comment as its first line:
+```
+# Tested against Chromium 131.0.6778.x — line numbers may shift on other versions
+```
+This documents which Chromium version the patch was authored against. When upgrading Chromium, grep for this header to identify which patches need re-verification.
 
 **Note:** Patch 001 now calls `RunStartup()` from Task 10 instead of raw fingerprint loading.
 
@@ -3814,6 +3885,7 @@ Create `clawbrowser/patches/001-browser-main-init.patch`:
 Patches `chrome/browser/chrome_browser_main.cc` to run the clawbrowser startup orchestration in the browser process.
 
 ```diff
+# Tested against Chromium 131.0.6778.x — line numbers may shift on other versions
 --- a/chrome/browser/chrome_browser_main.cc
 +++ b/chrome/browser/chrome_browser_main.cc
 @@ -XX,6 +XX,7 @@
@@ -4609,6 +4681,8 @@ The patch hooks into `ChromeContentBrowserClient::CreateLoginDelegate()`:
 
 Add to BUILD.gn sources: `"proxy/proxy_auth_login_delegate.cc"`, `"proxy/proxy_auth_login_delegate.h"`.
 
+**Note on proxy mid-session drop:** If the upstream proxy drops mid-session, Chromium's existing network error handling applies (ERR_PROXY_CONNECTION_FAILED). This is expected browser behavior — the clawbrowser shim does not add special handling for proxy drops. Chromium will surface standard network error pages. No additional code is needed here.
+
 - [ ] **Step 3: Create patch 019 — verify page registration**
 
 Create `clawbrowser/patches/019-verify-page-registration.patch`:
@@ -4969,6 +5043,32 @@ async def test_media_devices_count(browser_with_fingerprint):
             "navigator.mediaDevices.enumerateDevices().then(d => d.length)"
         )
         assert actual == len(fp["media_devices"])
+
+
+@pytest.mark.asyncio
+async def test_speech_synthesis(browser_with_fingerprint):
+    """speechSynthesis.getVoices() should match fingerprint speech_voices list."""
+    page, data = browser_with_fingerprint
+    fp = data["response"]["fingerprint"]
+    if "speech_voices" not in fp:
+        pytest.skip("No speech_voices in test fixture")
+
+    voices = await page.evaluate("""() => new Promise((resolve) => {
+        const voices = speechSynthesis.getVoices();
+        if (voices.length > 0) {
+            resolve(voices.map(v => v.name));
+        } else {
+            speechSynthesis.onvoiceschanged = () => {
+                resolve(speechSynthesis.getVoices().map(v => v.name));
+            };
+            // Timeout after 3s — voices may not load in headless
+            setTimeout(() => resolve(speechSynthesis.getVoices().map(v => v.name)), 3000);
+        }
+    })""")
+    expected_voices = fp["speech_voices"]
+    assert sorted(voices) == sorted(expected_voices), (
+        f"Expected {expected_voices}, got {voices}"
+    )
 ```
 
 - [ ] **Step 4: Create vanilla mode test**
@@ -5044,6 +5144,35 @@ async def test_verify_page(browser_with_fingerprint):
     await page.wait_for_function("window.__clawbrowser_verify")
     result = await page.evaluate("window.__clawbrowser_verify")
     assert result["status"] == "pass", f"Failed checks: {result['checks']}"
+
+
+@pytest.mark.asyncio
+async def test_accept_language_header(browser_with_fingerprint):
+    """Accept-Language HTTP header should match fingerprint language array."""
+    page, data = browser_with_fingerprint
+    fp = data["response"]["fingerprint"]
+    if "language" not in fp or not fp["language"]:
+        pytest.skip("No language in test fixture")
+
+    # Use CDP to intercept request headers
+    client = await page.context.new_cdp_session(page)
+    await client.send("Network.enable")
+
+    headers_captured = {}
+
+    def on_request(params):
+        nonlocal headers_captured
+        if not headers_captured:
+            headers_captured = params.get("request", {}).get("headers", {})
+
+    client.on("Network.requestWillBeSent", on_request)
+    await page.goto("data:text/html,<h1>test</h1>")
+
+    accept_lang = headers_captured.get("Accept-Language", "")
+    # First language should match primary fingerprint language
+    assert accept_lang.startswith(fp["language"][0]), (
+        f"Accept-Language '{accept_lang}' doesn't start with '{fp['language'][0]}'"
+    )
 
 
 @pytest.mark.asyncio
