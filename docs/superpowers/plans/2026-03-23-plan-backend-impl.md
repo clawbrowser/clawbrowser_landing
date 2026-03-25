@@ -11,6 +11,13 @@
 **Spec:** `docs/superpowers/specs/2026-03-22-clawbrowser-backend-design.md`
 **API Contract:** `api/openapi.yaml`
 
+**Observability Compatibility:** This plan is designed to be extended by the observability implementation plan (`docs/superpowers/plans/2026-03-24-plan-observability-impl.md`). Key design decisions for forward-compatibility:
+- Config includes a `logging.level` field from the start
+- Router uses a `RouterDeps` struct (not positional params) so observability can add `Logger`, `Metrics`, `Registry` fields
+- No `middleware.Logger` or `middleware.RequestID` — the observability plan adds structured equivalents
+- Bare `slog.Error`/`slog.Info` calls use Go's default logger; the observability plan sets `slog.SetDefault()` with a JSON handler
+- Intended middleware ordering: `RequestLoggingMiddleware` → `MetricsMiddleware` → `middleware.Recoverer` → per-group auth (first two added by observability plan)
+
 ---
 
 ## File Structure
@@ -116,6 +123,9 @@ Create `config.yaml` with all defaults from the spec:
 ```yaml
 server:
   port: 8080
+
+logging:
+  level: info  # Observability plan configures slog JSON handler using this value
 
 redis:
   url: redis://localhost:6379
@@ -280,6 +290,7 @@ import (
 
 type Config struct {
 	Server     ServerConfig     `mapstructure:"server"`
+	Logging    LoggingConfig    `mapstructure:"logging"`
 	Redis      RedisConfig      `mapstructure:"redis"`
 	Postgres   PostgresConfig   `mapstructure:"postgres"`
 	Auth0      Auth0Config      `mapstructure:"auth0"`
@@ -292,6 +303,10 @@ type Config struct {
 
 type ServerConfig struct {
 	Port int `mapstructure:"port"`
+}
+
+type LoggingConfig struct {
+	Level string `mapstructure:"level"` // debug, info, warn, error — used by observability plan's slog setup
 }
 
 type RedisConfig struct {
@@ -4200,7 +4215,7 @@ import (
 )
 
 func TestHealthz(t *testing.T) {
-	router := clawapi.NewRouter(nil, nil, nil, "", "", "")
+	router := clawapi.NewRouter(clawapi.RouterDeps{})
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -4211,7 +4226,7 @@ func TestHealthz(t *testing.T) {
 }
 
 func TestReadyz(t *testing.T) {
-	router := clawapi.NewRouter(nil, nil, nil, "", "", "")
+	router := clawapi.NewRouter(clawapi.RouterDeps{})
 	req := httptest.NewRequest(http.MethodGet, "/readyz", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
@@ -4252,22 +4267,27 @@ type ReadinessChecker interface {
 	Ping(ctx context.Context) error
 }
 
+// RouterDeps holds all dependencies for the Chi router.
+// The observability plan extends this struct with Logger, Metrics, and Registry fields.
+type RouterDeps struct {
+	Server                 *Server
+	UnkeyVerifier          UnkeyVerifier
+	JWTValidator           JWTValidator
+	Auth0WebhookSecret     string
+	UnibeeWebhookSecret    string
+	WebhookSignatureHeader string
+	ReadinessCheckers      []ReadinessChecker
+}
+
 // NewRouter creates the Chi router with all middleware and routes.
-func NewRouter(
-	server *Server,
-	unkeyVerifier UnkeyVerifier,
-	jwtValidator JWTValidator,
-	auth0WebhookSecret string,
-	unibeeWebhookSecret string,
-	webhookSignatureHeader string,
-	readinessCheckers ...ReadinessChecker,
-) http.Handler {
+func NewRouter(deps RouterDeps) http.Handler {
 	r := chi.NewRouter()
 
 	// Global middleware
-	r.Use(middleware.Logger)
+	// Note: RequestLoggingMiddleware and MetricsMiddleware are added here by the
+	// observability plan. They provide structured JSON logging with request_id,
+	// customer_id, component fields and Prometheus metrics instrumentation.
 	r.Use(middleware.Recoverer)
-	r.Use(middleware.RequestID)
 
 	// Health probes (no auth)
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -4275,7 +4295,7 @@ func NewRouter(
 		w.Write([]byte("ok"))
 	})
 	r.Get("/readyz", func(w http.ResponseWriter, r *http.Request) {
-		for _, checker := range readinessCheckers {
+		for _, checker := range deps.ReadinessCheckers {
 			if err := checker.Ping(r.Context()); err != nil {
 				w.WriteHeader(http.StatusServiceUnavailable)
 				w.Write([]byte("not ready"))
@@ -4286,36 +4306,36 @@ func NewRouter(
 		w.Write([]byte("ok"))
 	})
 
-	if server == nil {
+	if deps.Server == nil {
 		return r
 	}
 
 	// Mount generated routes with per-group middleware
 	// Browser-facing routes (Unkey auth)
 	r.Group(func(r chi.Router) {
-		if unkeyVerifier != nil {
-			r.Use(UnkeyAuthMiddleware(unkeyVerifier))
+		if deps.UnkeyVerifier != nil {
+			r.Use(UnkeyAuthMiddleware(deps.UnkeyVerifier))
 		}
-		r.Post("/v1/fingerprints/generate", server.PostV1FingerprintsGenerate)
-		r.Post("/v1/proxy/verify", server.PostV1ProxyVerify)
+		r.Post("/v1/fingerprints/generate", deps.Server.PostV1FingerprintsGenerate)
+		r.Post("/v1/proxy/verify", deps.Server.PostV1ProxyVerify)
 	})
 
 	// Dashboard-facing routes (Auth0 JWT auth)
 	r.Group(func(r chi.Router) {
-		if jwtValidator != nil {
-			r.Use(Auth0JWTMiddleware(jwtValidator))
+		if deps.JWTValidator != nil {
+			r.Use(Auth0JWTMiddleware(deps.JWTValidator))
 		}
-		r.Get("/v1/me", server.GetV1Me)
-		r.Put("/v1/me", server.PutV1Me)
-		r.Post("/v1/api-keys", server.PostV1ApiKeys)
-		r.Get("/v1/api-keys", server.GetV1ApiKeys)
+		r.Get("/v1/me", deps.Server.GetV1Me)
+		r.Put("/v1/me", deps.Server.PutV1Me)
+		r.Post("/v1/api-keys", deps.Server.PostV1ApiKeys)
+		r.Get("/v1/api-keys", deps.Server.GetV1ApiKeys)
 		r.Delete("/v1/api-keys/{id}", func(w http.ResponseWriter, req *http.Request) {
-			server.DeleteV1ApiKeysId(w, req, chi.URLParam(req, "id"))
+			deps.Server.DeleteV1ApiKeysId(w, req, chi.URLParam(req, "id"))
 		})
 		r.Post("/v1/api-keys/{id}/rotate", func(w http.ResponseWriter, req *http.Request) {
-			server.PostV1ApiKeysIdRotate(w, req, chi.URLParam(req, "id"))
+			deps.Server.PostV1ApiKeysIdRotate(w, req, chi.URLParam(req, "id"))
 		})
-		r.Get("/v1/usage", server.GetV1Usage)
+		r.Get("/v1/usage", deps.Server.GetV1Usage)
 		r.Get("/v1/usage/history", func(w http.ResponseWriter, req *http.Request) {
 			from, _ := time.Parse("2006-01-02", req.URL.Query().Get("from"))
 			to, _ := time.Parse("2006-01-02", req.URL.Query().Get("to"))
@@ -4325,21 +4345,21 @@ func NewRouter(
 				To:          to,
 				Granularity: &granularity,
 			}
-			server.GetV1UsageHistory(w, req, params)
+			deps.Server.GetV1UsageHistory(w, req, params)
 		})
-		r.Get("/v1/billing/subscription", server.GetV1BillingSubscription)
-		r.Post("/v1/billing/portal", server.PostV1BillingPortal)
+		r.Get("/v1/billing/subscription", deps.Server.GetV1BillingSubscription)
+		r.Post("/v1/billing/portal", deps.Server.PostV1BillingPortal)
 	})
 
 	// Webhook routes (signature verification)
 	r.Group(func(r chi.Router) {
-		if auth0WebhookSecret != "" {
-			r.With(WebhookSignatureMiddleware(auth0WebhookSecret, webhookSignatureHeader)).
-				Post("/v1/webhooks/auth0", server.PostV1WebhooksAuth0)
+		if deps.Auth0WebhookSecret != "" {
+			r.With(WebhookSignatureMiddleware(deps.Auth0WebhookSecret, deps.WebhookSignatureHeader)).
+				Post("/v1/webhooks/auth0", deps.Server.PostV1WebhooksAuth0)
 		}
-		if unibeeWebhookSecret != "" {
-			r.With(WebhookSignatureMiddleware(unibeeWebhookSecret, webhookSignatureHeader)).
-				Post("/v1/webhooks/unibee", server.PostV1WebhooksUnibee)
+		if deps.UnibeeWebhookSecret != "" {
+			r.With(WebhookSignatureMiddleware(deps.UnibeeWebhookSecret, deps.WebhookSignatureHeader)).
+				Post("/v1/webhooks/unibee", deps.Server.PostV1WebhooksUnibee)
 		}
 	})
 
@@ -4348,6 +4368,8 @@ func NewRouter(
 ```
 
 **Note:** This hand-wires routes rather than using the generated `gen.HandlerFromMux`, because we need per-group middleware (Unkey vs Auth0 vs webhook). The generated handler applies a single middleware to all routes. The compile-time `ServerInterface` check in Task 19 ensures we don't miss any endpoints.
+
+**Observability note:** The `RouterDeps` struct is designed to be extended by the observability plan with `Logger *slog.Logger`, `Metrics *observe.Metrics`, and `Registry *prometheus.Registry` fields. The observability plan will insert `RequestLoggingMiddleware(deps.Logger)` and `MetricsMiddleware(deps.Metrics)` before `middleware.Recoverer` and register `r.Handle("/metrics", promhttp.HandlerFor(deps.Registry, ...))` alongside the health probes.
 
 - [ ] **Step 4: Run tests to verify they pass**
 
@@ -4467,8 +4489,15 @@ func main() {
 	unkeyVerifier := &unkeyVerifierAdapter{client: unkeyClient}
 	jwtValidator := &auth0ValidatorAdapter{client: auth0Client}
 
-	router := clawapi.NewRouter(server, unkeyVerifier, jwtValidator,
-		cfg.Webhooks.Auth0Secret, cfg.Webhooks.UniBeeSecret, cfg.Webhooks.SignatureHeader, pg, cache)
+	router := clawapi.NewRouter(clawapi.RouterDeps{
+		Server:                 server,
+		UnkeyVerifier:          unkeyVerifier,
+		JWTValidator:           jwtValidator,
+		Auth0WebhookSecret:     cfg.Webhooks.Auth0Secret,
+		UnibeeWebhookSecret:    cfg.Webhooks.UniBeeSecret,
+		WebhookSignatureHeader: cfg.Webhooks.SignatureHeader,
+		ReadinessCheckers:      []clawapi.ReadinessChecker{pg, cache},
+	})
 
 	// Start HTTP server
 	httpServer := &http.Server{
@@ -4982,7 +5011,7 @@ import (
 
 func TestContract_HealthzNotInSpec(t *testing.T) {
 	// Health probes are infrastructure endpoints not in OpenAPI spec — verify they still work
-	router := clawapi.NewRouter(nil, nil, nil, "", "", "")
+	router := clawapi.NewRouter(clawapi.RouterDeps{})
 	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
