@@ -11,6 +11,11 @@
 **Spec:** `docs/superpowers/specs/2026-03-23-clawbrowser-dashboard-design.md`
 **API Contract:** `api/openapi.yaml`
 
+**Cross-plan compatibility:**
+- **DevOps:** This plan includes a CI/CD workflow (Task 24) that builds, pushes, and fires `repository_dispatch` to `clawbrowser-infra` per the devops spec's build flow.
+- **Observability:** The dashboard is a stateless Next.js frontend. Pod-level metrics (CPU, memory, restarts) are collected by VictoriaMetrics via kubelet/cAdvisor. Fluent Bit collects Next.js stdout logs automatically. No application-level `/metrics` endpoint is needed. The observability plan should add a "Dashboard Pod Resources" row to its pod resources Grafana dashboard.
+- **Auth0 audience:** Uses a dedicated `AUTH0_AUDIENCE` env var (not `NEXT_PUBLIC_API_URL`) to avoid coupling the Auth0 audience identifier with the API base URL.
+
 ---
 
 ## File Structure
@@ -133,6 +138,7 @@ AUTH0_BASE_URL=http://localhost:3000
 AUTH0_ISSUER_BASE_URL=
 AUTH0_CLIENT_ID=
 AUTH0_CLIENT_SECRET=
+AUTH0_AUDIENCE=
 
 # API
 NEXT_PUBLIC_API_URL=http://localhost:8080
@@ -369,7 +375,7 @@ export const auth0 = initAuth0({
   clientSecret: process.env.AUTH0_CLIENT_SECRET,
   authorizationParams: {
     scope: 'openid profile email',
-    audience: process.env.NEXT_PUBLIC_API_URL,
+    audience: process.env.AUTH0_AUDIENCE,
   },
 });
 ```
@@ -591,14 +597,25 @@ import { UserProvider } from '@auth0/nextjs-auth0/client';
 import { useState } from 'react';
 import { Toaster } from '@/components/ui/toaster';
 
+// Custom error class for API errors with status codes
+export class ApiError extends Error {
+  status: number;
+  code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.status = status;
+    this.code = code;
+  }
+}
+
 function handleGlobalError(error: unknown) {
-  if (
-    error &&
-    typeof error === 'object' &&
-    'status' in error &&
-    (error as { status: number }).status === 401
-  ) {
-    window.location.href = '/login';
+  if (error instanceof ApiError) {
+    if (error.status === 401) {
+      window.location.href = '/login';
+    }
+    // 403 and 404 are handled by individual page error boundaries
+    // 429 is handled by TanStack Query's built-in retry with backoff
   }
 }
 
@@ -615,7 +632,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
         defaultOptions: {
           queries: {
             staleTime: 30 * 1000,
-            retry: 3,
+            retry: (failureCount, error) => {
+              // Retry up to 3 times for 429 (rate limited) and 5xx errors
+              if (error instanceof ApiError && [403, 404].includes(error.status)) return false;
+              return failureCount < 3;
+            },
+            retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
           },
           mutations: {
             retry: false,
@@ -959,7 +981,9 @@ export function useCreateApiKey() {
       if (error) throw error;
       return data;
     },
-    onSuccess: () => {
+    // On success, invalidate to get the server-authoritative list
+    // (create returns the new key with the secret — we can't optimistically predict it)
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
   });
@@ -975,7 +999,22 @@ export function useRevokeApiKey() {
       });
       if (error) throw error;
     },
-    onSuccess: () => {
+    // Optimistic update: remove key from list immediately, roll back on error
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['api-keys'] });
+      const previous = queryClient.getQueryData(['api-keys']);
+      queryClient.setQueryData(['api-keys'], (old: any) => ({
+        ...old,
+        keys: old?.keys?.filter((k: any) => k.id !== id) ?? [],
+      }));
+      return { previous };
+    },
+    onError: (_err, _id, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['api-keys'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['api-keys'] });
     },
   });
@@ -1550,9 +1589,13 @@ const primaryNav = [
   { href: '/settings', label: 'Settings', icon: '⚙' },
 ];
 
+// Latest changelog version — bump when adding new changelog entries.
+// Compared against localStorage to show "What's New" badge.
+const LATEST_CHANGELOG_VERSION = '2026-03-01';
+
 const secondaryNav = [
   { href: '/docs', label: 'Docs', icon: '▧', flag: 'docs' as const },
-  { href: '/changelog', label: 'Changelog', icon: '▦', flag: 'changelog' as const },
+  { href: '/changelog', label: 'Changelog', icon: '▦', flag: 'changelog' as const, badge: true },
   { href: '/support', label: 'Support', icon: '?', flag: 'support' as const },
 ];
 
@@ -1569,6 +1612,20 @@ export function DashboardSidebar() {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem('sidebar-collapsed', String(next));
+  };
+
+  // "What's New" badge: show when latest changelog is newer than last-seen
+  const [hasNewChangelog, setHasNewChangelog] = useState(false);
+  useEffect(() => {
+    const lastSeen = localStorage.getItem('changelog-last-seen');
+    if (!lastSeen || lastSeen < LATEST_CHANGELOG_VERSION) {
+      setHasNewChangelog(true);
+    }
+  }, []);
+
+  const handleChangelogClick = () => {
+    localStorage.setItem('changelog-last-seen', LATEST_CHANGELOG_VERSION);
+    setHasNewChangelog(false);
   };
 
   const enabledSecondaryNav = secondaryNav.filter((item) =>
@@ -1617,6 +1674,7 @@ export function DashboardSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={item.badge ? handleChangelogClick : undefined}
                 className={cn(
                   'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                   pathname === item.href
@@ -1625,7 +1683,16 @@ export function DashboardSidebar() {
                 )}
               >
                 <span className="w-5 text-center">{item.icon}</span>
-                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && (
+                  <span className="flex items-center gap-2">
+                    {item.label}
+                    {item.badge && hasNewChangelog && (
+                      <span className="inline-flex h-5 items-center rounded-full bg-primary px-1.5 text-[10px] font-medium text-primary-foreground">
+                        New
+                      </span>
+                    )}
+                  </span>
+                )}
               </Link>
             ))}
           </>
@@ -1742,6 +1809,7 @@ Create `src/app/(dashboard)/error.tsx`:
 'use client';
 
 import { Button } from '@/components/ui/button';
+import { ApiError } from '@/app/providers';
 
 export default function DashboardError({
   error,
@@ -1750,6 +1818,25 @@ export default function DashboardError({
   error: Error;
   reset: () => void;
 }) {
+  // Per spec: differentiated UI for 403/404/generic errors
+  if (error instanceof ApiError && error.status === 403) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <h2 className="text-xl font-semibold">Access Denied</h2>
+        <p className="text-muted-foreground">You don&apos;t have permission to access this resource.</p>
+      </div>
+    );
+  }
+
+  if (error instanceof ApiError && error.status === 404) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full gap-4">
+        <h2 className="text-xl font-semibold">Not Found</h2>
+        <p className="text-muted-foreground">The requested resource was not found.</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center justify-center h-full gap-4">
       <h2 className="text-xl font-semibold">Something went wrong</h2>
@@ -1800,19 +1887,41 @@ export default function SignupPage() {
 }
 ```
 
-- [ ] **Step 3: Create callback page**
+- [ ] **Step 3: Create callback page with first-login detection**
 
 Create `src/app/(auth)/callback/page.tsx`:
 
+Per the spec's auth flow: after Auth0 callback, check if this is the user's first login. If yes and the onboarding feature flag is enabled, redirect to `/onboarding`. Otherwise redirect to `/dashboard`.
+
 ```typescript
 import { redirect } from 'next/navigation';
+import { getSession } from '@auth0/nextjs-auth0';
+import { isFeatureEnabled } from '@/lib/features';
 
-export default function CallbackPage() {
-  // Auth0 SDK handles the callback automatically via /api/auth/callback
-  // This page exists for the redirect back after auth
+export default async function CallbackPage() {
+  // Auth0 SDK handles the callback exchange via /api/auth/callback
+  // This page runs after the session is established
+  const session = await getSession();
+
+  if (!session) {
+    redirect('/login');
+  }
+
+  // Check if first login: Auth0 returns logins_count in app_metadata
+  // or we can check if the user has no customer record via the API.
+  // The simplest approach: check Auth0 user metadata for logins_count.
+  const loginsCount = session.user?.['https://clawbrowser.ai/logins_count'] ?? 1;
+  const isFirstLogin = loginsCount <= 1;
+
+  if (isFirstLogin && isFeatureEnabled('onboarding')) {
+    redirect('/onboarding');
+  }
+
   redirect('/dashboard');
 }
 ```
+
+**Note:** The `logins_count` claim must be added to the Auth0 access token via an Auth0 Action (Login flow). The Action should add `event.stats.logins_count` as a custom claim at `https://clawbrowser.ai/logins_count`. This is an Auth0 configuration step, not application code.
 
 - [ ] **Step 4: Commit**
 
@@ -1878,9 +1987,9 @@ export default function DashboardOverview() {
         ) : (
           <>
             <StatCard
-              title="Fingerprints Generated"
+              title="API Calls Today"
               value={String(usage?.fingerprint_generations ?? 0)}
-              description="Current period"
+              description="Fingerprint generations"
             />
             <StatCard
               title="Active API Keys"
@@ -2789,6 +2898,7 @@ Create `src/app/(public)/docs/[[...slug]]/page.tsx`:
 ```typescript
 import { notFound } from 'next/navigation';
 import { isFeatureEnabled } from '@/lib/features';
+import { getSession } from '@auth0/nextjs-auth0';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import fs from 'fs';
 import path from 'path';
@@ -2808,17 +2918,43 @@ export default async function DocsPage({ params }: DocsPageProps) {
 
   const source = fs.readFileSync(filePath, 'utf-8');
 
+  // Per spec: authenticated users see their API key pre-filled in code snippets.
+  // Fetch user's first active API key if logged in, otherwise use placeholder.
+  let apiKeyPlaceholder = 'your_key_here';
+  try {
+    const session = await getSession();
+    if (session) {
+      // Import the API fetch utility server-side to get user's key prefix
+      // This is a best-effort personalization — if it fails, use placeholder
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/v1/api-keys`, {
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const activeKey = data.keys?.find((k: any) => !k.revoked_at);
+        if (activeKey?.key_prefix) {
+          apiKeyPlaceholder = `${activeKey.key_prefix}...`;
+        }
+      }
+    }
+  } catch {
+    // Best-effort — use default placeholder
+  }
+
+  // Replace placeholder in MDX source before rendering
+  const personalizedSource = source.replace(/your_key_here/g, apiKeyPlaceholder);
+
   return (
     <div className="max-w-3xl mx-auto py-12 px-6">
       <article className="prose prose-neutral dark:prose-invert max-w-none">
-        <MDXRemote source={source} />
+        <MDXRemote source={personalizedSource} />
       </article>
     </div>
   );
 }
 ```
 
-**Note:** Flexsearch-based client-side search (`src/lib/search.ts`) is deferred to post-MVP. The docs feature flag covers this — search will be added when the docs feature is enabled by default.
+**Note:** The docs page imports `getSession` from `@auth0/nextjs-auth0` for server-side API key lookup. This is optional — unauthenticated visitors see `your_key_here` as the placeholder. Flexsearch-based client-side search (`src/lib/search.ts`) is deferred to post-MVP.
 
 - [ ] **Step 2: Create initial docs content**
 
@@ -2990,3 +3126,116 @@ If any issues found and fixed:
 git add -A
 git commit -m "fix: resolve build and lint issues"
 ```
+
+---
+
+### Task 24: CI/CD Workflow
+
+Per the devops spec: each app repo has a `ci.yaml` that runs tests, builds Docker image, pushes to Docker Hub, and fires `repository_dispatch` to `clawbrowser-infra`.
+
+**Files:**
+- Create: `.github/workflows/ci.yaml`
+
+- [ ] **Step 1: Create CI/CD workflow**
+
+Create `.github/workflows/ci.yaml`:
+
+```yaml
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write  # For OIDC federation with AWS (if needed)
+
+env:
+  IMAGE_NAME: clawbrowser-dashboard
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm generate-types
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+
+  build-and-push:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate image tag
+        id: tag
+        run: |
+          # Format: v{semver}-{build_number}-{short_sha}
+          VERSION=$(cat package.json | jq -r .version)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          TAG="v${VERSION}-${GITHUB_RUN_NUMBER}-${SHORT_SHA}"
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:${{ steps.tag.outputs.tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger deploy to QA
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.INFRA_REPO_GITHUB_APP_TOKEN }}
+          repository: PGoski/clawbrowser-infra
+          event-type: deploy-dashboard
+          client-payload: '{"image_tag": "${{ needs.build-and-push.outputs.image_tag }}"}'
+```
+
+- [ ] **Step 2: Commit**
+
+```bash
+git add .github/workflows/ci.yaml
+git commit -m "feat: add CI/CD workflow for test, build, push, and deploy"
+```
+
+---
+
+### Deferred Concerns
+
+- **Client-side error reporting:** Dashboard JavaScript errors are currently invisible to the observability stack. Consider adding a lightweight error reporting solution (e.g., Sentry, or a custom `window.onerror` handler that posts to the backend) in a follow-up. The error boundary (Task 12) catches React errors but does not report them externally.
+- **Flexsearch docs search:** Deferred to post-MVP, gated behind the `docs` feature flag.
+- **Separate liveness/readiness probes:** Currently `GET /` serves both. A custom `/api/health` endpoint with Auth0 connectivity check could improve readiness semantics.
