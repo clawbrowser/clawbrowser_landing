@@ -12,23 +12,39 @@ export function CapabilityList() {
   return (
     <section
       id="capabilities"
-      className="bg-zinc-100/80 px-6 py-16 dark:bg-zinc-900/40"
+      className="border-t border-zinc-200 bg-[#FAFAF8] px-6 py-24"
       aria-labelledby="capabilities-heading"
     >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <h2 id="capabilities-heading" className="text-3xl font-bold">
-          Surfaces stay internally consistent
-        </h2>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Profiles are generated to match real-world combinations—platform,
-          fonts, timezone, and proxy geography line up so you are not advertising
-          contradictory signals.
-        </p>
-        <ul className="list-disc space-y-2 pl-6 text-zinc-600 dark:text-zinc-400">
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
+      <div className="mx-auto max-w-5xl">
+        <div className="grid gap-12 md:grid-cols-2 md:gap-20">
+          <div className="space-y-5">
+            <p className="text-sm font-medium text-cyan-600">Fingerprint surfaces</p>
+            <h2 id="capabilities-heading" className="text-3xl font-semibold tracking-tight text-zinc-950" style={{ letterSpacing: "-0.5px" }}>
+              Surfaces stay internally consistent
+            </h2>
+            <p className="text-sm leading-relaxed text-zinc-500">
+              Profiles are generated to match real-world combinations—platform,
+              fonts, timezone, and proxy geography line up so you are not advertising
+              contradictory signals.
+            </p>
+          </div>
+          <ul className="space-y-3">
+            {items.map((item) => (
+              <li key={item} className="flex items-start gap-3 text-sm text-zinc-600">
+                <svg
+                  className="mt-0.5 h-4 w-4 shrink-0 text-cyan-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

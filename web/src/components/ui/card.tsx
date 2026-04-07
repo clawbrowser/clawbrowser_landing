@@ -11,7 +11,7 @@ export function Card({
   return (
     <div
       className={cn(
-        "rounded-lg border border-zinc-200 bg-white text-zinc-950 shadow-sm dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-50",
+        "rounded-2xl border border-zinc-200 bg-white text-zinc-950 shadow-sm",
         className,
       )}
     >
@@ -27,7 +27,7 @@ export function CardHeader({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={cn("flex flex-col gap-1.5 p-6", className)}>{children}</div>;
+  return <div className={cn("flex flex-col gap-1.5 p-5", className)}>{children}</div>;
 }
 
 export function CardTitle({
@@ -51,7 +51,7 @@ export function CardContent({
   className?: string;
   children: ReactNode;
 }) {
-  return <div className={cn("p-6 pt-0", className)}>{children}</div>;
+  return <div className={cn("p-5 pt-0", className)}>{children}</div>;
 }
 
 export function CardDescription({
@@ -62,7 +62,7 @@ export function CardDescription({
   children: ReactNode;
 }) {
   return (
-    <p className={cn("text-sm text-zinc-600 dark:text-zinc-400", className)}>
+    <p className={cn("text-sm text-zinc-500", className)}>
       {children}
     </p>
   );

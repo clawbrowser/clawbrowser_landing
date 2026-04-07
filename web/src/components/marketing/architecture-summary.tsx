@@ -1,33 +1,54 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
 export function ArchitectureSummary() {
   return (
     <section
       id="architecture"
-      className="px-6 py-16"
+      className="border-t border-zinc-200 bg-white px-6 py-24"
       aria-labelledby="architecture-heading"
     >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <h2 id="architecture-heading" className="text-3xl font-bold">
-          One browser binary, one process
-        </h2>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          Clawbrowser pairs a Chromium fork with an embedded Rust library,{" "}
-          <strong className="text-zinc-950 dark:text-zinc-50">libclaw</strong>,
-          for fingerprint profiles and proxy credentials. At launch, your profile
-          is loaded so renderer and GPU processes read the same values—no per-call
-          glue from your automation code.
-        </p>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Built-in verification</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-zinc-600 dark:text-zinc-400">
-            On startup the browser can run checks that proxy egress matches the
-            profile and that key JavaScript surfaces match what was generated—so
-            failures are obvious before your agent touches the page.
-          </CardContent>
-        </Card>
+      <div className="mx-auto max-w-4xl space-y-10">
+        <div className="space-y-5">
+          <p className="text-sm font-medium text-cyan-600">Architecture</p>
+          <h2 id="architecture-heading" className="text-3xl font-semibold tracking-tight text-zinc-950" style={{ letterSpacing: "-0.5px" }}>
+            One browser binary, one process
+          </h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-zinc-500">
+            Clawbrowser pairs a Chromium fork with an embedded Rust library,{" "}
+            <strong className="font-medium text-zinc-900">libclaw</strong>,
+            for fingerprint profiles and proxy credentials. At launch, your profile
+            is loaded so renderer and GPU processes read the same values—no per-call
+            glue from your automation code.
+          </p>
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <div className="rounded-2xl border border-zinc-200 bg-[#FAFAF8] p-6">
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
+              <svg className="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" />
+              </svg>
+            </div>
+            <h3 className="mb-2 text-sm font-semibold text-zinc-900">Built-in verification</h3>
+            <p className="text-sm leading-relaxed text-zinc-500">
+              On startup the browser can run checks that proxy egress matches the
+              profile and that key JavaScript surfaces match what was generated—so
+              failures are obvious before your agent touches the page.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-zinc-200 bg-[#FAFAF8] p-6">
+            <div className="mb-3 flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-50">
+              <svg className="h-4 w-4 text-cyan-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5" />
+              </svg>
+            </div>
+            <h3 className="mb-2 text-sm font-semibold text-zinc-900">Zero glue code</h3>
+            <p className="text-sm leading-relaxed text-zinc-500">
+              Fingerprint spoofing and proxy routing happen inside the binary. Your
+              automation scripts connect via standard CDP—no middleware, no wrappers,
+              no per-call configuration.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   );

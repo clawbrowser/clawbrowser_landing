@@ -1,16 +1,14 @@
-import { Card, CardContent } from "@/components/ui/card";
-
 export function PlatformNote() {
   return (
-    <section className="px-6 py-12" aria-label="Platform support">
-      <Card className="mx-auto max-w-3xl border-dashed">
-        <CardContent className="pt-6 text-center text-sm text-zinc-600 dark:text-zinc-400">
+    <section className="border-t border-zinc-200 bg-[#FAFAF8] px-6 py-14" aria-label="Platform support">
+      <div className="mx-auto max-w-5xl">
+        <p className="rounded-2xl border border-zinc-200 bg-white px-6 py-5 text-center text-sm text-zinc-500 shadow-sm">
           MVP builds target{" "}
-          <strong className="text-zinc-950 dark:text-zinc-50">macOS</strong>.
+          <strong className="font-medium text-zinc-900">macOS</strong>.
           Linux and other platforms are on the roadmap; Windows is explicitly out
           of scope for now.
-        </CardContent>
-      </Card>
+        </p>
+      </div>
     </section>
   );
 }

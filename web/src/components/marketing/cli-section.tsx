@@ -1,40 +1,86 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+"use client";
 
-const examples = `export CLAWBROWSER_API_KEY=clawbrowser_xxxxx
+import { useState } from "react";
 
-clawbrowser --fingerprint=fp_abc123
-clawbrowser --fingerprint=fp_abc123 --regenerate
-clawbrowser --fingerprint=fp_abc123 --remote-debugging-port=9222
-clawbrowser --fingerprint=fp_abc123 --headless
-clawbrowser --list
-clawbrowser`;
+const lines = [
+  { type: "env", text: "export CLAWBROWSER_API_KEY=clawbrowser_xxxxx" },
+  { type: "gap" },
+  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123" },
+  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --regenerate" },
+  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --remote-debugging-port=9222" },
+  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --headless" },
+  { type: "cmd", text: "clawbrowser --list" },
+  { type: "cmd", text: "clawbrowser" },
+];
 
 export function CliSection() {
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard.writeText(lines.filter(l => l.text).map(l => l.text).join("\n"));
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
   return (
     <section
       id="cli"
-      className="bg-zinc-100/80 px-6 py-16 dark:bg-zinc-900/40"
+      className="border-t border-zinc-200 bg-white px-6 py-24"
       aria-labelledby="cli-heading"
     >
-      <div className="mx-auto max-w-3xl space-y-6">
-        <h2 id="cli-heading" className="text-3xl font-bold">
-          CLI that stays familiar
-        </h2>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          The executable is Chromium with Clawbrowser hooks. Standard Chromium
-          flags pass through; Clawbrowser adds profile-oriented commands for
-          fingerprints and automation-friendly output.
-        </p>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Common commands</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <pre className="overflow-x-auto whitespace-pre rounded-lg border border-zinc-200 bg-zinc-50 p-4 text-sm dark:border-zinc-800 dark:bg-zinc-950">
-              <code>{examples}</code>
+      <div className="mx-auto max-w-4xl space-y-10">
+        <div className="space-y-5">
+          <p className="text-sm font-medium text-cyan-600">CLI</p>
+          <h2 id="cli-heading" className="text-3xl font-semibold tracking-tight text-zinc-950" style={{ letterSpacing: "-0.5px" }}>
+            CLI that stays familiar
+          </h2>
+          <p className="max-w-xl text-sm leading-relaxed text-zinc-500">
+            The executable is Chromium with Clawbrowser hooks. Standard Chromium
+            flags pass through; Clawbrowser adds profile-oriented commands for
+            fingerprints and automation-friendly output.
+          </p>
+        </div>
+        <div className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
+          {/* Terminal header */}
+          <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100 px-4 py-2.5">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-red-400/70" />
+              <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
+              <span className="h-3 w-3 rounded-full bg-green-400/70" />
+              <span className="ml-2 text-xs text-zinc-500">bash</span>
+            </div>
+            <button
+              type="button"
+              onClick={copy}
+              className="text-xs text-zinc-400 transition-colors hover:text-zinc-700"
+            >
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
+          <div className="bg-[#0d1117] p-5">
+            <pre className="overflow-x-auto font-mono text-sm leading-7">
+              {lines.map((line, i) =>
+                line.type === "gap" ? (
+                  <br key={i} />
+                ) : line.type === "env" ? (
+                  <div key={i}>
+                    <span className="text-slate-500">$ </span>
+                    <span className="text-amber-300">{line.text}</span>
+                  </div>
+                ) : (
+                  <div key={i}>
+                    <span className="text-slate-500">$ </span>
+                    <span className="text-slate-200">{line.text?.split("--")[0]}</span>
+                    {line.text?.includes("--") && (
+                      <span className="text-cyan-400">
+                        {"--" + line.text.split("--").slice(1).join("--")}
+                      </span>
+                    )}
+                  </div>
+                )
+              )}
             </pre>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </section>
   );
