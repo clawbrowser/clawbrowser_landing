@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const navLink =
-  "text-sm text-zinc-500 transition-colors hover:text-zinc-900";
+  "text-sm text-zinc-500 transition-colors hover:text-zinc-900 cursor-pointer";
 
 const sections = [
   { label: "Capabilities", hash: "capabilities" },
@@ -15,18 +15,24 @@ const sections = [
 
 function NavAnchor({ hash, children }: { hash: string; children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
 
   function handleClick(e: React.MouseEvent) {
+    e.preventDefault();
     if (pathname === "/") {
-      e.preventDefault();
       document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+    } else {
+      router.push("/");
+      setTimeout(() => {
+        document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+      }, 300);
     }
   }
 
   return (
-    <Link href={`/#${hash}`} onClick={handleClick} className={navLink}>
+    <a href={`/#${hash}`} onClick={handleClick} className={navLink}>
       {children}
-    </Link>
+    </a>
   );
 }
 
