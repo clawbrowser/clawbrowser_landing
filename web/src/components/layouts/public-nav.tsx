@@ -1,8 +1,34 @@
+"use client";
+
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const navLink =
   "text-sm text-zinc-500 transition-colors hover:text-zinc-900";
+
+const sections = [
+  { label: "Capabilities", hash: "capabilities" },
+  { label: "CLI", hash: "cli" },
+  { label: "Agents", hash: "agents" },
+];
+
+function NavAnchor({ hash, children }: { hash: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  function handleClick(e: React.MouseEvent) {
+    if (pathname === "/") {
+      e.preventDefault();
+      document.getElementById(hash)?.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  return (
+    <a href={`/#${hash}`} onClick={handleClick} className={navLink}>
+      {children}
+    </a>
+  );
+}
 
 export function PublicNav() {
   return (
@@ -11,9 +37,9 @@ export function PublicNav() {
         Clawbrowser
       </Link>
       <div className="hidden items-center gap-6 md:flex">
-        <Link href="/#capabilities" className={navLink}>Capabilities</Link>
-        <Link href="/#cli" className={navLink}>CLI</Link>
-        <Link href="/#agents" className={navLink}>Agents</Link>
+        {sections.map((s) => (
+          <NavAnchor key={s.hash} hash={s.hash}>{s.label}</NavAnchor>
+        ))}
         <Link href="/docs" className={navLink}>Docs</Link>
       </div>
       <div className="flex items-center gap-2">
