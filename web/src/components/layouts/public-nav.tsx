@@ -24,9 +24,9 @@ function NavAnchor({ hash, children }: { hash: string; children: React.ReactNode
   }
 
   return (
-    <a href={`/#${hash}`} onClick={handleClick} className={navLink}>
+    <Link href={`/#${hash}`} onClick={handleClick} className={navLink}>
       {children}
-    </a>
+    </Link>
   );
 }
 
