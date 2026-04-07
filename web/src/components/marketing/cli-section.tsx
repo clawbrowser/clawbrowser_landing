@@ -56,7 +56,7 @@ export function CliSection() {
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>
-          <div className="bg-[#0d1117] p-5">
+          <div className="bg-[#161b22] p-5">
             <pre className="overflow-x-auto font-mono text-sm leading-7">
               {lines.map((line, i) =>
                 line.type === "gap" ? (
