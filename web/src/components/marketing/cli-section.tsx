@@ -2,6 +2,26 @@
 
 import { useState } from "react";
 
+function CopyIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+  );
+}
+
 const lines = [
   { type: "env", text: "export CLAWBROWSER_API_KEY=clawbrowser_xxxxx" },
   { type: "gap" },
@@ -51,8 +71,9 @@ export function CliSection() {
             <button
               type="button"
               onClick={copy}
-              className="text-xs text-zinc-400 transition-colors hover:text-zinc-700"
+              className="flex items-center gap-1.5 rounded-md bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-300 hover:text-zinc-950"
             >
+              <CopyIcon />
               {copied ? "Copied!" : "Copy"}
             </button>
           </div>

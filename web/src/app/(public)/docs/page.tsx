@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
+import { PromptBlock } from "@/components/docs/prompt-block";
 
 export const metadata = {
   title: "Documentation — Clawbrowser",
@@ -148,6 +149,7 @@ export default function DocsPage() {
         </p>
 
         <H2 id="quick-start">Quick Start</H2>
+        <PromptBlock />
         <P>
           Set your API key, then launch with a fingerprint profile ID. On first
           use the profile is generated from the API and cached locally —
