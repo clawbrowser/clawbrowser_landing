@@ -97,10 +97,10 @@ body {
 .prose-blog code {
   font-family: var(--font-geist-mono), ui-monospace, monospace;
   font-size: 0.875em;
-  background: #f4f4f5;
+  background: #e4e4e7;
   padding: 0.15em 0.4em;
   border-radius: 4px;
-  color: #3f3f46;
+  color: #18181b;
 }
 
 .prose-blog pre {
@@ -132,22 +132,34 @@ body {
 .prose-blog table {
   width: 100%;
   border-collapse: collapse;
+  margin-top: 1.25rem;
   margin-bottom: 1.5rem;
-  font-size: 0.9rem;
+  font-size: 0.875rem;
+  border: 1px solid #d4d4d8;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.prose-blog thead {
+  background: #f4f4f5;
 }
 
 .prose-blog th {
   text-align: left;
   font-weight: 600;
   color: #18181b;
-  border-bottom: 2px solid #e4e4e7;
-  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #d4d4d8;
+  padding: 0.625rem 0.875rem;
 }
 
 .prose-blog td {
   border-bottom: 1px solid #e4e4e7;
-  padding: 0.5rem 0.75rem;
-  color: #52525b;
+  padding: 0.625rem 0.875rem;
+  color: #3f3f46;
+}
+
+.prose-blog tr:last-child td {
+  border-bottom: none;
 }
 
 .prose-blog hr {
