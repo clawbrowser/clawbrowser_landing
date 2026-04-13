@@ -28,3 +28,130 @@ body {
 * {
   border-color: var(--border);
 }
+
+/* Blog post prose styles */
+.prose-blog {
+  color: #3f3f46; /* zinc-700 */
+  font-size: 1rem;
+  line-height: 1.8;
+}
+
+.prose-blog h2 {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #09090b;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  letter-spacing: -0.01em;
+}
+
+.prose-blog h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #09090b;
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.prose-blog p {
+  margin-bottom: 1.25rem;
+}
+
+.prose-blog ul,
+.prose-blog ol {
+  margin-bottom: 1.25rem;
+  padding-left: 1.5rem;
+}
+
+.prose-blog li {
+  margin-bottom: 0.35rem;
+}
+
+.prose-blog ul li {
+  list-style-type: disc;
+}
+
+.prose-blog ol li {
+  list-style-type: decimal;
+}
+
+.prose-blog strong {
+  font-weight: 600;
+  color: #18181b;
+}
+
+.prose-blog em {
+  font-style: italic;
+}
+
+.prose-blog a {
+  color: #18181b;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.prose-blog a:hover {
+  color: #71717a;
+}
+
+.prose-blog code {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.875em;
+  background: #f4f4f5;
+  padding: 0.15em 0.4em;
+  border-radius: 4px;
+  color: #3f3f46;
+}
+
+.prose-blog pre {
+  background: #18181b;
+  color: #e4e4e7;
+  padding: 1.25rem 1.5rem;
+  border-radius: 12px;
+  overflow-x: auto;
+  margin-bottom: 1.5rem;
+  font-size: 0.875rem;
+  line-height: 1.7;
+}
+
+.prose-blog pre code {
+  background: none;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+}
+
+.prose-blog blockquote {
+  border-left: 3px solid #e4e4e7;
+  padding-left: 1rem;
+  color: #71717a;
+  font-style: italic;
+  margin-bottom: 1.25rem;
+}
+
+.prose-blog table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.prose-blog th {
+  text-align: left;
+  font-weight: 600;
+  color: #18181b;
+  border-bottom: 2px solid #e4e4e7;
+  padding: 0.5rem 0.75rem;
+}
+
+.prose-blog td {
+  border-bottom: 1px solid #e4e4e7;
+  padding: 0.5rem 0.75rem;
+  color: #52525b;
+}
+
+.prose-blog hr {
+  border: none;
+  border-top: 1px solid #e4e4e7;
+  margin: 2.5rem 0;
+}

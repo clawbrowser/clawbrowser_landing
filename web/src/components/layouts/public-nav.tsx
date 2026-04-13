@@ -47,6 +47,7 @@ export function PublicNav() {
           <NavAnchor key={s.hash} hash={s.hash}>{s.label}</NavAnchor>
         ))}
         <Link href="/docs" className={navLink}>Docs</Link>
+        <Link href="/blog" className={navLink}>Blog</Link>
       </div>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" href="/login">Log in</Button>
