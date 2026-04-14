@@ -18,7 +18,7 @@ describe('marketing home sections', () => {
         name: /fingerprint control and proxy routing/i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute('href', '/signup');
+    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute('href', 'https://app.qa.clawbrowser.ai/login');
     expect(screen.getByRole('link', { name: /documentation/i })).toHaveAttribute('href', '/docs');
   });
 

@@ -51,7 +51,7 @@ export function PublicNav() {
       </div>
       <div className="flex items-center gap-2">
         <Button variant="ghost" size="sm" href="https://app.qa.clawbrowser.ai/login">Log in</Button>
-        <Button size="sm" href="/signup">Sign up</Button>
+        <Button size="sm" href="https://app.qa.clawbrowser.ai/login">Sign up</Button>
       </div>
     </nav>
   );

@@ -105,7 +105,7 @@ export function HeroSection() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-3">
-          <Button size="lg" href="/signup">Get started free</Button>
+          <Button size="lg" href="https://app.qa.clawbrowser.ai/login">Get started free</Button>
           <Button size="lg" variant="outline" href="/docs">Documentation</Button>
         </div>
 

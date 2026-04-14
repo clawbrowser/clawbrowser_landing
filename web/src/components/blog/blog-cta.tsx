@@ -96,7 +96,7 @@ export function BlogCTA() {
           {copied ? "Copied!" : "Copy prompt"}
         </button>
         <Link
-          href="/signup"
+          href="https://app.qa.clawbrowser.ai/login"
           className="inline-flex items-center rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
         >
           Get started free
