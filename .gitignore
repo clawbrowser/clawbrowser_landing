@@ -2,3 +2,4 @@ pnpm-store
 .env
 node_modules/
 .claude/
+.idea
