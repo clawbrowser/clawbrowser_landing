@@ -1,72 +1,72 @@
 # Blog Publishing Guide
 
-## Как опубликовать статью — коротко
+## How to publish an article — quick version
 
-1. Создай `.md` файл в папке `web/content/blog/`
-2. Имя файла — через дефисы, без пробелов (это станет URL)  
+1. Create a `.md` file in `web/content/blog/`
+2. Name it with dashes, no spaces — this becomes the URL  
    `my-article.md` → `clawbrowser.ai/blog/my-article`
-3. Запушь в GitHub → сайт пересобирается → статья появляется
+3. Commit and push to GitHub → site rebuilds → post appears automatically
 
 ---
 
-## Структура файла
+## File structure
 
-Каждая статья начинается с блока frontmatter (между `---`), затем контент.
+Every article starts with a frontmatter block (between the `---` lines), then the content below.
 
 ```
 ---
-title: "Заголовок статьи"
-excerpt: "Одно предложение — показывается на карточке. До 160 символов."
+title: "Your Article Title"
+excerpt: "One sentence shown on the blog card. Keep it under 160 characters."
 date: "2025-06-01"
-author: "Имя Фамилия"
+author: "Your Name"
 tags: ["agents", "how-to"]
 coverImage: "/blog/my-cover.jpg"
 ---
 
-Текст статьи начинается здесь...
+Your article content starts here...
 ```
 
-### Поля frontmatter
+### Frontmatter fields
 
-| Поле | Обязательно | Описание |
-|------|-------------|----------|
-| `title` | Да | Заголовок страницы и карточки |
-| `excerpt` | Да | Подпись на карточке. 1–2 предложения. |
-| `date` | Да | Формат: `YYYY-MM-DD` |
-| `author` | Да | Имя автора |
-| `tags` | Нет | Список тегов для фильтрации |
-| `coverImage` | Нет | Путь к обложке. Если нет — автоматический значок. |
+| Field | Required | Notes |
+|-------|----------|-------|
+| `title` | Yes | Shown as page heading and card title |
+| `excerpt` | Yes | Shown on blog index card. 1–2 sentences. |
+| `date` | Yes | Format: `YYYY-MM-DD` |
+| `author` | Yes | Your name or team name |
+| `tags` | No | List of topics. Used for filtering. |
+| `coverImage` | No | Path to cover image. Falls back to auto icon if omitted. |
 
 ---
 
-## Обложка статьи
+## Cover image
 
-### Шаг 1 — положи картинку в нужную папку
+### Step 1 — add your image file
 
-Картинки для статей хранятся в:
+Place the image in:
 
 ```
 web/public/blog/
 ```
 
-Просто добавь файл туда. Например: `web/public/blog/my-article-cover.jpg`
+Example: `web/public/blog/my-article-cover.jpg`
 
-**Рекомендации:**
-- Форматы: `.jpg`, `.png`, `.webp`
-- Размер: 1200×630px (стандарт для og:image), минимум 800px по ширине
-- Имя файла: только латиница, дефисы вместо пробелов (`my-cover.jpg`, не `my cover.jpg`)
+**Recommendations:**
+- Formats: `.jpg`, `.png`, `.webp`
+- Size: 1200×630px recommended, minimum 800px wide
+- File naming: lowercase, dashes only — `my-cover.jpg` not `my cover.jpg`
 
-### Шаг 2 — укажи путь в frontmatter
+### Step 2 — reference it in frontmatter
 
 ```markdown
 coverImage: "/blog/my-article-cover.jpg"
 ```
 
-Путь начинается с `/blog/` — это важно.
+The path must start with `/blog/`.
 
-### Пример
+### Example
 
-Файл лежит в `web/public/blog/fingerprinting-cover.jpg`:
+Image file at `web/public/blog/fingerprinting-cover.jpg`:
 
 ```markdown
 ---
@@ -75,157 +75,172 @@ coverImage: "/blog/fingerprinting-cover.jpg"
 ---
 ```
 
-Если `coverImage` не указан — на карточке отображается автоматический значок по тегу статьи. Это нормально, картинка не обязательна.
+If `coverImage` is not set, the card shows an automatic icon based on the article's first tag. This is fine — cover images are optional.
 
 ---
 
-## Написание контента
+## Writing content
 
-Всё ниже второго `---` — это тело статьи в формате Markdown.
+Everything below the second `---` is your article body in standard Markdown.
 
-### Заголовки
+### Headings
 
 ```markdown
-## Раздел
-### Подраздел
+## Section heading
+### Sub-section
 ```
 
-Используй `##` для основных разделов, `###` для подразделов. `#` не используй — это заголовок страницы, он берётся из `title`.
+Use `##` for main sections, `###` for sub-sections. Don't use `#` — that's the page title, already rendered from the `title` field.
 
 ---
 
-### Абзацы
+### Paragraphs
 
-Просто текст. Пустая строка между абзацами.
+Just write text. Blank line between paragraphs.
 
 ---
 
-### Жирный и курсив
+### Bold and italic
 
 ```markdown
-**жирный**
-*курсив*
-```
-
----
-
-### Списки
-
-```markdown
-- Пункт один
-- Пункт два
-
-1. Первый шаг
-2. Второй шаг
+**bold text**
+*italic text*
 ```
 
 ---
 
-### Таблицы
+### Lists
 
+Bullet list:
 ```markdown
-| Колонка 1 | Колонка 2 | Колонка 3 |
-|-----------|-----------|-----------|
-| Значение  | Значение  | Значение  |
+- First item
+- Second item
+- Third item
+```
+
+Numbered list:
+```markdown
+1. First step
+2. Second step
+3. Third step
 ```
 
 ---
 
-### Код
+### Tables
 
-Инлайн:
 ```markdown
-Используй команду `claw navigate`.
+| Column 1 | Column 2 | Column 3 |
+|----------|----------|----------|
+| Value A  | Value B  | Value C  |
+| Value D  | Value E  | Value F  |
 ```
 
-Блок кода (указывай язык для подсветки):
+---
+
+### Code blocks
+
+Inline code (short snippets):
+```markdown
+Use the `claw navigate` command.
+```
+
+Full code block — specify language for syntax highlighting:
 
 ````markdown
 ```bash
-claw navigate https://example.com
+claw navigate https://example.com --session work
+claw extract "product name and price" --json
 ```
 ````
 
 ````markdown
 ```python
 import subprocess
-result = subprocess.run(["claw", "extract", "title"])
+result = subprocess.run(["claw", "extract", "title"], capture_output=True)
 ```
 ````
 
-Поддерживаемые языки: `bash`, `python`, `javascript`, `typescript`, `json`, `sql` и другие.
+Supported languages: `bash`, `python`, `javascript`, `typescript`, `json`, `sql`, and most others.
 
 ---
 
-### Изображения внутри статьи
+### Images inside the article
 
 ```markdown
-![Описание](/blog/my-image.png)
+![Description of image](/blog/my-image.png)
 ```
 
-Файл должен лежать в `web/public/blog/`.
+The file must be placed in `web/public/blog/`.
 
 ---
 
-### Цитата / выноска
+### Blockquotes
 
 ```markdown
-> Это выделенная цитата или важное замечание.
+> This is a highlighted quote or callout.
 ```
 
 ---
 
-## Полный пример файла
+### Horizontal divider
 
 ```markdown
 ---
-title: "Как мы снизили RAM в 10 раз"
-excerpt: "Перешли с 30GB на 3GB для 100 параллельных сессий. Вот как."
+```
+
+---
+
+## Full article example
+
+```markdown
+---
+title: "How We Cut Browser Memory Usage by 10x"
+excerpt: "We went from 30GB RAM for 100 sessions to under 3GB. Here's exactly how."
 date: "2025-06-01"
 author: "Clawbrowser Team"
 tags: ["performance", "architecture"]
-coverImage: "/blog/memory-optimization-cover.jpg"
+coverImage: "/blog/memory-cover.jpg"
 ---
 
-Браузерная автоматизация в масштабе — дорогое удовольствие.
-Один Chrome съедает 150–300 МБ RAM.
+Browser automation at scale is expensive. A single Chrome instance uses 150–300MB of RAM.
 
-## Проблема
+## The problem
 
-Мы запускали 100 сессий параллельно и упирались в память:
+We profiled our early architecture and found this:
 
-| Сессий | Наивный подход | С пулингом |
-|--------|---------------|------------|
-| 10     | 2 ГБ          | 400 МБ     |
-| 100    | 28 ГБ         | 2.8 ГБ     |
+| Sessions | RAM (naive) | RAM (pooled) |
+|----------|-------------|--------------|
+| 10       | 2 GB        | 400 MB       |
+| 100      | 28 GB       | 2.8 GB       |
 
-## Что изменили
+## What we changed
 
-Вместо одного процесса на сессию — общий пул браузеров с изолированными контекстами.
+Instead of one process per session, we share browser processes across isolated contexts.
 
 ```bash
 claw session start --profile user-42
 ```
 
-![Архитектура пула](/blog/pool-architecture.png)
+![Architecture diagram](/blog/pool-architecture.png)
 
-## Результат
+## Result
 
-**В 10 раз меньше памяти.** API агентов не изменился.
+**10x memory reduction.** Same isolation guarantees. No changes to the API your agents call.
 ```
 
 ---
 
-## Чеклист перед публикацией
+## Checklist before publishing
 
-- [ ] Frontmatter содержит `title`, `excerpt`, `date`, `author`
-- [ ] Дата в формате `YYYY-MM-DD`
-- [ ] Имя файла — латиница, дефисы, заканчивается на `.md`
-- [ ] Если есть обложка — файл лежит в `web/public/blog/`, путь начинается с `/blog/`
-- [ ] Картинки внутри статьи тоже в `web/public/blog/`
+- [ ] Frontmatter has `title`, `excerpt`, `date`, `author`
+- [ ] Date is in `YYYY-MM-DD` format
+- [ ] Filename uses dashes only, ends in `.md`
+- [ ] If using a cover image — file is in `web/public/blog/` and path starts with `/blog/`
+- [ ] Images inside the article are also in `web/public/blog/`
 
 ---
 
-## Вопросы?
+## Questions?
 
-Открой issue в GitHub репозитории или напиши разработчику.
+Open an issue in the GitHub repo or reach out to the dev team.
