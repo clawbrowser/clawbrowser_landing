@@ -88,7 +88,7 @@ async function parseSegments(content: string): Promise<ContentSegment[]> {
 
 function extractHeadings(markdown: string): PostHeading[] {
   const headings: PostHeading[] = [];
-  const re = /^(#{2,3})\s+(.+)$/gm;
+  const re = /^(#{2})\s+(.+)$/gm;
   let m: RegExpExecArray | null;
   while ((m = re.exec(markdown)) !== null) {
     const level = m[1].length;

@@ -10,7 +10,10 @@ export default function PublicLayout({
       <PublicNav />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-zinc-200 px-6 py-4 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
-        © {new Date().getFullYear()} Clawbrowser. All rights reserved.
+        <p>© {new Date().getFullYear()} Clawbrowser. All rights reserved.</p>
+        <p className="mt-1">
+          Available for <strong className="font-medium text-zinc-900">macOS</strong> and <strong className="font-medium text-zinc-900">Linux</strong>. Windows support is on the roadmap.
+        </p>
       </footer>
     </div>
   );
