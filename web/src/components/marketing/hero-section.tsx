@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { APP_LOGIN_URL } from "@/lib/links";
 
 const agentPrompt = `# Task: Install and Deploy Clawbrowser
 
@@ -105,7 +106,7 @@ export function HeroSection() {
         </p>
 
         <div className="flex flex-wrap justify-center gap-3">
-          <Button size="lg" href="https://app.qa.clawbrowser.ai/login">Get started free</Button>
+          <Button size="lg" href={APP_LOGIN_URL}>Get started free</Button>
           <Button size="lg" variant="outline" href="/docs">Documentation</Button>
         </div>
 

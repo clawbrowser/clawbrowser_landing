@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { APP_LOGIN_URL } from "@/lib/links";
 
 const navLink =
   "text-sm text-zinc-500 transition-colors hover:text-zinc-900 cursor-pointer";
@@ -61,8 +62,8 @@ export function PublicNav() {
         <Link href="/blog" className={navLink}>Blog</Link>
       </div>
       <div className="flex items-center gap-2">
-        <Button variant="ghost" size="sm" href="https://app.qa.clawbrowser.ai/login">Log in</Button>
-        <Button size="sm" href="https://app.qa.clawbrowser.ai/login">Sign up</Button>
+        <Button variant="ghost" size="sm" href={APP_LOGIN_URL}>Log in</Button>
+        <Button size="sm" href={APP_LOGIN_URL}>Sign up</Button>
       </div>
     </nav>
   );

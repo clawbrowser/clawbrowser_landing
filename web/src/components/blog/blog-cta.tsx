@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { APP_LOGIN_URL } from "@/lib/links";
 
 const agentPrompt = `# Task: Install and Deploy Clawbrowser
 
@@ -96,7 +97,7 @@ export function BlogCTA() {
           {copied ? "Copied!" : "Copy prompt"}
         </button>
         <Link
-          href="https://app.qa.clawbrowser.ai/login"
+          href={APP_LOGIN_URL}
           className="inline-flex items-center rounded-full bg-zinc-950 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-700"
         >
           Get started free

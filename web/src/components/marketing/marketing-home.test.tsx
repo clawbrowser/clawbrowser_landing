@@ -15,18 +15,18 @@ describe('marketing home sections', () => {
     expect(
       screen.getByRole('heading', {
         level: 1,
-        name: /fingerprint control and proxy routing/i,
+        name: /browser built for ai agents/i,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute('href', 'https://app.qa.clawbrowser.ai/login');
+    expect(screen.getByRole('link', { name: /get started/i })).toHaveAttribute('href', 'https://app.clawbrowser.ai/login');
     expect(screen.getByRole('link', { name: /documentation/i })).toHaveAttribute('href', '/docs');
   });
 
   it('problem section names AI agents and multi-account users', () => {
     render(<ProblemSolutionSection />);
     const section = screen.getByRole('region', { name: /who clawbrowser is for/i });
-    expect(within(section).getByText(/ai agents/i)).toBeInTheDocument();
-    expect(within(section).getByText(/multi-account/i)).toBeInTheDocument();
+    expect(within(section).getByRole('heading', { level: 3, name: /ai agents/i })).toBeInTheDocument();
+    expect(within(section).getByRole('heading', { level: 3, name: /multi-account operators/i })).toBeInTheDocument();
   });
 
   it('architecture mentions Chromium and libclaw', () => {
