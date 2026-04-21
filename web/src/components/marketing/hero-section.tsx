@@ -134,7 +134,7 @@ export function HeroSection() {
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button size="lg" variant="outline" href="/docs">Documentation</Button>
-          <Button size="lg" variant="outline" href="/download">Download</Button>
+          <Button size="lg" variant="outline" href="https://github.com/clawbrowser/clawbrowser/releases">Download</Button>
           <a
             href="https://github.com/clawbrowser/clawbrowser"
             target="_blank"
