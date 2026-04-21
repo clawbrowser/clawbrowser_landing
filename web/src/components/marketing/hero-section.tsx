@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { APP_LOGIN_URL } from "@/lib/links";
 
 const agentPrompt = `# Task: Install and Deploy Clawbrowser
 
@@ -105,31 +104,30 @@ export function HeroSection() {
           and transparent proxy routing. Stop fighting captchas and bot detection at scale.
         </p>
 
-        <div className="flex flex-wrap justify-center gap-3">
-          <Button size="lg" href={APP_LOGIN_URL}>Get started free</Button>
-          <Button size="lg" variant="outline" href="/docs">Documentation</Button>
+        {/* Pre-built prompt block */}
+        <div className="mx-auto max-w-xl">
+          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-md">
+            <div className="text-left">
+              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pre-built prompt</p>
+              <p className="text-base font-semibold text-zinc-900">Let your agent install Clawbrowser</p>
+            </div>
+            <button
+              type="button"
+              onClick={copy}
+              className="ml-5 flex shrink-0 items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 active:scale-95"
+            >
+              <CopyIcon />
+              {copied ? "Copied!" : "Copy prompt"}
+            </button>
+          </div>
         </div>
 
         <p className="text-sm text-zinc-400">
           Works with Playwright, Puppeteer, and any CDP-compatible tool
         </p>
 
-        {/* Pre-built prompt block */}
-        <div className="mx-auto max-w-md">
-          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-4 py-3 shadow-sm">
-            <div className="text-left">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pre-built prompt</p>
-              <p className="text-sm font-medium text-zinc-800">Let your agent install Clawbrowser</p>
-            </div>
-            <button
-              type="button"
-              onClick={copy}
-              className="ml-4 flex shrink-0 items-center gap-1.5 rounded-lg bg-zinc-950 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-zinc-700"
-            >
-              <CopyIcon />
-              {copied ? "Copied!" : "Copy prompt"}
-            </button>
-          </div>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button size="lg" variant="outline" href="/docs">Documentation</Button>
         </div>
       </div>
     </section>
