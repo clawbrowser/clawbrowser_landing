@@ -105,20 +105,24 @@ export function HeroSection() {
         </p>
 
         {/* Pre-built prompt block */}
-        <div className="mx-auto max-w-xl">
-          <div className="flex items-center justify-between rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-md">
-            <div className="text-left">
-              <p className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Pre-built prompt</p>
-              <p className="text-base font-semibold text-zinc-900">Let your agent install Clawbrowser</p>
-            </div>
+        <div className="relative mx-auto max-w-xl">
+          <div
+            className="absolute -inset-6 -z-10 rounded-3xl blur-3xl"
+            style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(0,183,250,0.28) 0%, rgba(67,10,240,0.10) 55%, transparent 80%)" }}
+          />
+          <div className="flex flex-col items-center gap-4 rounded-2xl border border-zinc-200 bg-white px-6 py-6 shadow-md">
             <button
               type="button"
               onClick={copy}
-              className="ml-5 flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-zinc-950 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 active:scale-95"
+              className="flex w-full cursor-pointer items-center justify-center gap-2.5 rounded-full bg-zinc-950 px-8 py-4 text-base font-semibold text-white transition-colors hover:bg-zinc-700 active:scale-95"
             >
               <CopyIcon />
               {copied ? "Copied!" : "Copy prompt"}
             </button>
+            <div className="text-center">
+              <p className="text-sm font-medium text-zinc-700">Let your agent install Clawbrowser</p>
+              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-zinc-400">Pre-built prompt</p>
+            </div>
           </div>
         </div>
 
