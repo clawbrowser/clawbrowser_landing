@@ -114,7 +114,7 @@ export function HeroSection() {
             <button
               type="button"
               onClick={copy}
-              className="ml-5 flex shrink-0 items-center gap-2 rounded-xl bg-zinc-950 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 active:scale-95"
+              className="ml-5 flex shrink-0 cursor-pointer items-center gap-2 rounded-full bg-zinc-950 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-zinc-700 active:scale-95"
             >
               <CopyIcon />
               {copied ? "Copied!" : "Copy prompt"}
