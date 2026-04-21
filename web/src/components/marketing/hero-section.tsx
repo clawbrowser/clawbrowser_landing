@@ -81,7 +81,7 @@ export function HeroSection() {
       aria-labelledby="hero-heading"
       style={{
         background:
-          "radial-gradient(ellipse 80% 50% at 50% -10%, rgba(0,183,250,0.08) 0%, transparent 60%), radial-gradient(ellipse 60% 40% at 80% 20%, rgba(67,10,240,0.05) 0%, transparent 60%), #FAFAF8",
+          "radial-gradient(ellipse 90% 70% at 50% 48%, rgba(0,183,250,0.13) 0%, transparent 65%), radial-gradient(ellipse 55% 80% at 42% 52%, rgba(0,183,250,0.08) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 58% 44%, rgba(67,10,240,0.06) 0%, transparent 55%), radial-gradient(ellipse 40% 60% at 53% 56%, rgba(0,183,250,0.06) 0%, transparent 50%), #FAFAF8",
       }}
     >
       <div className="relative mx-auto max-w-4xl space-y-7">
