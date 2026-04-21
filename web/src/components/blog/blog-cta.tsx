@@ -26,7 +26,7 @@ Before starting, confirm:
 
 ### 1. Download Clawbrowser
 Download the appropriate binary for [TARGET_OS]/[ARCH] from:
-[DOWNLOAD_URL] (check https://clawbrowser.ai/download for the latest release)
+[DOWNLOAD_URL] (check https://github.com/clawbrowser/clawbrowser/releases for the latest release)
 
 ### 2. Install
 [INSTALL_INSTRUCTIONS] (e.g., extract archive, move binary to /usr/local/bin, set permissions)
