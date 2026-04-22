@@ -41,14 +41,18 @@ function NavAnchor({ hash, children }: { hash: string; children: React.ReactNode
 export function PublicNav() {
   return (
     <nav className="sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-zinc-200 bg-white/80 px-6 py-3.5 backdrop-blur-md">
-      <Link href="/" className="flex shrink-0 items-center gap-3 text-zinc-950">
+      <Link
+        href="/"
+        className="flex shrink-0 items-center gap-3 text-zinc-950"
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+      >
         <Image
           src="/side-bite.svg"
           alt=""
           aria-hidden="true"
           width={36}
           height={36}
-          className="h-9 w-9 shrink-0 rounded-[18px] shadow-[0_12px_24px_rgba(9,9,11,0.14)]"
+          className="h-9 w-9 shrink-0 rounded-[18px]"
           priority
           unoptimized
         />
