@@ -112,9 +112,9 @@ export function HeroSection() {
             tabIndex={0}
             onClick={copy}
             onKeyDown={(e) => e.key === "Enter" && copy()}
-            className="flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-6 shadow-md transition-shadow hover:shadow-lg active:scale-[0.99]"
+            className="group flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-6 shadow-md transition-shadow hover:shadow-lg active:scale-[0.99]"
           >
-            <div className="flex w-full items-center justify-center gap-2.5 rounded-full bg-zinc-950 px-8 py-4 text-base font-semibold text-white">
+            <div className="flex w-full items-center justify-center gap-2.5 rounded-full bg-zinc-950 px-8 py-4 text-base font-semibold text-white transition-all group-hover:bg-zinc-800 group-hover:shadow-[0_0_24px_rgba(0,183,250,0.35)] dark:group-hover:shadow-[0_0_28px_rgba(0,183,250,0.25)]">
               <CopyIcon />
               {copied ? "Copied!" : "Copy prompt"}
             </div>
