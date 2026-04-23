@@ -161,12 +161,12 @@ const links = [
 export function AskAiSection() {
   return (
     <section
-      className="border-t border-zinc-200 bg-[#FAFAF8] px-6 py-14"
+      className="border-t border-zinc-200 dark:border-zinc-800 bg-[#FAFAF8] dark:bg-[#0c0c0e] px-6 py-14"
       aria-label="Ask AI about Clawbrowser"
     >
       <div className="mx-auto max-w-5xl">
-        <div className="rounded-2xl border border-zinc-200 bg-white px-6 py-7 shadow-sm">
-          <p className="mb-5 text-center text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+        <div className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-7 shadow-sm">
+          <p className="mb-5 text-center text-[11px] font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500">
             Ask AI about Clawbrowser
           </p>
           <div className="flex flex-wrap items-center justify-center gap-3">
@@ -176,7 +176,7 @@ export function AskAiSection() {
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-white hover:text-zinc-950"
+                className="flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-white dark:hover:bg-zinc-750 hover:text-zinc-950 dark:hover:text-zinc-50"
               >
                 {icon}
                 {name}

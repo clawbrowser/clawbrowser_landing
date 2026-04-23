@@ -8,9 +8,9 @@ const variants = {
   gradient:
     "bg-zinc-950 text-white hover:bg-zinc-800",
   outline:
-    "border border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 hover:border-zinc-400",
+    "border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600",
   ghost:
-    "bg-transparent text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700",
+    "bg-transparent text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-700 dark:hover:text-zinc-200",
 };
 
 const sizes = {

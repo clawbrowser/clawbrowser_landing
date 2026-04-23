@@ -4,10 +4,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { APP_LOGIN_URL } from "@/lib/links";
 
 const navLink =
-  "text-sm text-zinc-500 transition-colors hover:text-zinc-900 cursor-pointer";
+  "text-sm text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer";
 
 const sections = [
   { label: "Capabilities", hash: "capabilities" },
@@ -40,10 +41,10 @@ function NavAnchor({ hash, children }: { hash: string; children: React.ReactNode
 
 export function PublicNav() {
   return (
-    <nav className="sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-zinc-200 bg-white/80 px-6 py-3.5 backdrop-blur-md">
+    <nav className="sticky top-0 z-50 flex items-center justify-between gap-4 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-950/80 px-6 py-3.5 backdrop-blur-md">
       <Link
         href="/"
-        className="flex shrink-0 items-center gap-3 text-zinc-950"
+        className="flex shrink-0 items-center gap-3 text-zinc-950 dark:text-zinc-50"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
       >
         <Image
@@ -66,6 +67,7 @@ export function PublicNav() {
         <Link href="/blog" className={navLink}>Blog</Link>
       </div>
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <Button variant="ghost" size="sm" href={APP_LOGIN_URL}>Log in</Button>
         <Button size="sm" href={APP_LOGIN_URL}>Sign up</Button>
       </div>

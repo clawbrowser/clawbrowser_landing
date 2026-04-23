@@ -56,19 +56,19 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-zinc-200 shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">
       {/* Terminal header */}
-      <div className="flex items-center justify-between border-b border-zinc-200 bg-zinc-100 px-4 py-2.5">
+      <div className="flex items-center justify-between border-b border-zinc-200 dark:border-zinc-800 bg-zinc-100 dark:bg-zinc-900 px-4 py-2.5">
         <div className="flex items-center gap-2">
           <span className="h-3 w-3 rounded-full bg-red-400/70" />
           <span className="h-3 w-3 rounded-full bg-yellow-400/70" />
           <span className="h-3 w-3 rounded-full bg-green-400/70" />
-          <span className="ml-2 text-xs text-zinc-500">{label}</span>
+          <span className="ml-2 text-xs text-zinc-500 dark:text-zinc-400">{label}</span>
         </div>
         <button
           type="button"
           onClick={copy}
-          className="flex items-center gap-1.5 rounded-md bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-300 hover:text-zinc-950"
+          className="flex items-center gap-1.5 rounded-md bg-zinc-200 dark:bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700 hover:text-zinc-950 dark:hover:text-zinc-100"
         >
           <CopyIcon />
           {copied ? "Copied!" : "Copy"}
@@ -85,16 +85,16 @@ function CodeBlock({ label, code }: { label: string; code: string }) {
 
 export function AgentIntegrationSection() {
   return (
-    <section id="agents" className="border-t border-zinc-200 bg-[#FAFAF8] px-6 py-24" aria-labelledby="agents-heading">
+    <section id="agents" className="border-t border-zinc-200 dark:border-zinc-800 bg-[#FAFAF8] dark:bg-[#0c0c0e] px-6 py-24" aria-labelledby="agents-heading">
       <div className="mx-auto max-w-3xl space-y-12">
         <div className="space-y-5">
           <p className="text-sm font-medium text-cyan-600">Agent integration</p>
-          <h2 id="agents-heading" className="text-3xl font-semibold tracking-tight text-zinc-950" style={{ letterSpacing: "-0.5px" }}>
+          <h2 id="agents-heading" className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50" style={{ letterSpacing: "-0.5px" }}>
             Connect over standard CDP
           </h2>
-          <p className="text-sm leading-relaxed text-zinc-500">
+          <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
             Launch with{" "}
-            <code className="rounded-md bg-zinc-100 px-1.5 py-0.5 font-mono text-xs text-zinc-800">
+            <code className="rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-800 dark:text-zinc-300">
               --remote-debugging-port
             </code>
             , then attach the same way you would to any Chromium build. Spoofing
