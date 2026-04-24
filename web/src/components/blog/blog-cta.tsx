@@ -77,21 +77,21 @@ export function BlogCTA() {
   }
 
   return (
-    <div className="mt-16 rounded-2xl border border-zinc-200 bg-white p-8 text-center shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 mb-2">
+    <div className="mt-16 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-8 text-center shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-widest text-zinc-400 dark:text-zinc-500 mb-2">
         Ready to start?
       </p>
-      <h3 className="text-xl font-semibold text-zinc-950 mb-2">
+      <h3 className="text-xl font-semibold text-zinc-950 dark:text-zinc-50 mb-2">
         Give your agent a browser
       </h3>
-      <p className="text-sm text-zinc-500 mb-6 max-w-sm mx-auto">
+      <p className="text-sm text-zinc-500 dark:text-zinc-400 mb-6 max-w-sm mx-auto">
         Clawbrowser handles fingerprints, proxies, and sessions. Your agent focuses on the task.
       </p>
       <div className="flex flex-wrap items-center justify-center gap-3">
         <button
           type="button"
           onClick={copy}
-          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:border-zinc-300 hover:bg-zinc-50"
+          className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-5 py-2.5 text-sm font-medium text-zinc-700 dark:text-zinc-300 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:bg-zinc-50 dark:hover:bg-zinc-700"
         >
           <CopyIcon />
           {copied ? "Copied!" : "Copy prompt"}

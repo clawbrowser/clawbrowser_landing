@@ -4,6 +4,7 @@ excerpt: "Modern anti-bot systems detect Playwright across four signal layers. H
 date: "2026-04-16"
 author: "Clawbrowser Team"
 tags: ["playwright", "browser-automation", "how-to"]
+coverImage: "/covers/cover-automation.svg"
 ---
 
 Playwright is the most popular tool for browser automation in 2026, but production Playwright scripts get blocked constantly. Even on sites that worked perfectly in testing, they hit captcha walls, get stuck in redirect loops, or quietly return empty pages. If this is happening to your AI agent or scraping job, the problem is almost never your logic — it's that modern anti-bot systems have a lot of signals to detect a Playwright-driven browser, and the default Playwright configuration trips most of them.
