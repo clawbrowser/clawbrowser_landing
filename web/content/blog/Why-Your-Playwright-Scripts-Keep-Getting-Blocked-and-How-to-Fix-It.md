@@ -3,6 +3,10 @@ title: "Why Your Playwright Scripts Keep Getting Blocked (and How to Fix It)"
 excerpt: "Modern anti-bot systems detect Playwright across four signal layers. Here's why your scripts keep failing — and the fix stack that actually works in production."
 date: "2026-04-16"
 author: "Clawbrowser Team"
+authorName: "Clawbrowser Team"
+authorRole: "Engineering"
+authorGithub: "https://github.com/clawbrowser"
+authorTwitter: "https://x.com/clawbrowser"
 tags: ["playwright", "browser-automation", "how-to"]
 coverImage: "/covers/cover-automation.svg"
 ---
@@ -86,6 +90,8 @@ We call this the **Coherence Principle**: a browser session passes modern anti-b
 This is why most DIY Playwright stealth stacks fail after the first few weeks. People patch one signal, ship it, then wonder why a site started blocking again after a provider rotated its detection model to check coherence between two signals that were previously checked independently.
 
 ---
+
+<!-- CTA -->
 
 ## The fix stack: what actually works in production
 

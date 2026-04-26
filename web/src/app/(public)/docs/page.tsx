@@ -1,11 +1,13 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
 import { PromptBlock } from "@/components/docs/prompt-block";
 
-export const metadata = {
-  title: "Documentation — Clawbrowser",
+export const metadata: Metadata = {
+  title: "Documentation",
   description:
-    "Clawbrowser agent integration guide: quick start, CLI reference, Playwright and Puppeteer examples.",
+    "Complete documentation for Clawbrowser: installation, CLI usage, fingerprint profiles, proxy setup, and AI agent integration with Playwright and Puppeteer.",
+  alternates: { canonical: "https://clawbrowser.ai/docs" },
 };
 
 function H2({ id, children }: { id: string; children: React.ReactNode }) {

@@ -1,11 +1,40 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getPost, getAllSlugs, type PostHeading, type ContentSegment } from "@/lib/blog";
 import { CodeBlock } from "@/components/docs/code-block";
 import { BlogCTA } from "@/components/blog/blog-cta";
+import { AuthorCard } from "@/components/blog/author-card";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 
 export async function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPost(slug);
+  if (!post) return {};
+  return {
+    title: post.title,
+    description: post.excerpt,
+    alternates: { canonical: `https://clawbrowser.ai/blog/${slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: "article",
+      publishedTime: post.date,
+      authors: [post.authorName ?? post.author],
+      images: post.coverImage
+        ? [{ url: `https://clawbrowser.ai${post.coverImage}`, width: 1200, height: 630 }]
+        : [],
+    },
+  };
 }
 
 function formatDate(dateStr: string) {
@@ -51,6 +80,8 @@ function Segments({ segments }: { segments: ContentSegment[] }) {
             className="prose-blog"
             dangerouslySetInnerHTML={{ __html: seg.content }}
           />
+        ) : seg.type === "cta" ? (
+          <BlogCTA key={i} />
         ) : (
           <CodeBlock key={i} code={seg.value} />
         )
@@ -68,8 +99,26 @@ export default async function PostPage({
   const post = await getPost(slug);
   if (!post) notFound();
 
+  const postUrl = `https://clawbrowser.ai/blog/${slug}`;
+
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0c0c0e]">
+      <BlogPostingJsonLd
+        title={post.title}
+        description={post.excerpt}
+        url={postUrl}
+        datePublished={post.date}
+        authorName={post.authorName ?? post.author}
+        imageUrl={post.coverImage ? `https://clawbrowser.ai${post.coverImage}` : undefined}
+      />
+      <BreadcrumbJsonLd
+        crumbs={[
+          { name: "Home", url: "https://clawbrowser.ai" },
+          { name: "Blog", url: "https://clawbrowser.ai/blog" },
+          { name: post.title, url: postUrl },
+        ]}
+      />
+
       {/* Hero with same gradient as homepage */}
       <div
         className="border-b border-zinc-200 px-6 py-16 bg-white dark:bg-zinc-950"
@@ -79,6 +128,14 @@ export default async function PostPage({
         }}
       >
         <div className="mx-auto max-w-2xl">
+          <Breadcrumbs
+            crumbs={[
+              { label: "Home", href: "/" },
+              { label: "Blog", href: "/blog" },
+              { label: post.title },
+            ]}
+          />
+
           <Link
             href="/blog"
             className="inline-flex items-center gap-1.5 text-sm text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors mb-8"
@@ -125,6 +182,14 @@ export default async function PostPage({
 
           <main className="min-w-0 flex-1">
             <Segments segments={post.segments} />
+            {post.authorName && (
+              <AuthorCard
+                name={post.authorName}
+                role={post.authorRole}
+                github={post.authorGithub}
+                twitter={post.authorTwitter}
+              />
+            )}
             <BlogCTA />
 
             <div className="mt-12 pt-8 border-t border-zinc-200 dark:border-zinc-800">

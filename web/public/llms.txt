@@ -1,0 +1,33 @@
+# Clawbrowser
+
+> Clawbrowser is a Chromium-based browser with managed fingerprints and transparent proxy routing, built for AI agent automation and multi-account management.
+
+## What Clawbrowser does
+
+Clawbrowser is a Chromium fork with an embedded library (libclaw) that spoofs 20+ browser fingerprint surfaces (Canvas, WebGL, AudioContext, navigator.*, screen, fonts, timezone, language, battery, plugins, and more), routes all traffic through a matching residential or datacenter proxy, and exposes a standard Chrome DevTools Protocol (CDP) endpoint fully compatible with Playwright, Puppeteer, and any CDP-based automation tool.
+
+## Key pages
+
+- Homepage: https://clawbrowser.ai
+- Documentation: https://clawbrowser.ai/docs
+- Blog: https://clawbrowser.ai/blog
+- GitHub: https://github.com/clawbrowser/clawbrowser
+- Releases: https://github.com/clawbrowser/clawbrowser/releases
+- API key dashboard: https://app.clawbrowser.ai
+
+## Install
+
+curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude
+
+Targets: claude, codex, gemini, all
+
+## Use cases
+
+- AI agent browser automation (anti-bot evasion at scale)
+- Multi-account management
+- Web scraping with fingerprint isolation
+- CDP automation with Playwright, Puppeteer
+
+## Licensing
+
+Clawbrowser is commercial software. An API key is required. Obtain one at https://app.clawbrowser.ai.

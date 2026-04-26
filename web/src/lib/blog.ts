@@ -15,6 +15,10 @@ export interface PostMeta {
   author: string;
   tags: string[];
   coverImage?: string;
+  authorName?: string;
+  authorRole?: string;
+  authorGithub?: string;
+  authorTwitter?: string;
 }
 
 export interface PostHeading {
@@ -25,7 +29,8 @@ export interface PostHeading {
 
 export type ContentSegment =
   | { type: "html"; content: string }
-  | { type: "code"; lang: string; value: string };
+  | { type: "code"; lang: string; value: string }
+  | { type: "cta" };
 
 export interface Post extends PostMeta {
   segments: ContentSegment[];
@@ -58,6 +63,26 @@ async function markdownToHtml(md: string): Promise<string> {
   return addHeadingIds(result.toString());
 }
 
+/** Split an HTML string on CTA comment markers, inserting cta segments */
+function splitHtmlOnCta(html: string): ContentSegment[] {
+  // Match <!-- CTA --> or <!--CTA--> (with or without spaces)
+  const ctaRe = /<!--\s*CTA\s*-->/gi;
+  const parts = html.split(ctaRe);
+  if (parts.length === 1) {
+    return [{ type: "html", content: html }];
+  }
+  const result: ContentSegment[] = [];
+  for (let i = 0; i < parts.length; i++) {
+    if (parts[i].trim()) {
+      result.push({ type: "html", content: parts[i] });
+    }
+    if (i < parts.length - 1) {
+      result.push({ type: "cta" });
+    }
+  }
+  return result;
+}
+
 /** Split markdown into alternating html/code segments */
 async function parseSegments(content: string): Promise<ContentSegment[]> {
   const segments: ContentSegment[] = [];
@@ -68,7 +93,8 @@ async function parseSegments(content: string): Promise<ContentSegment[]> {
   while ((match = fence.exec(content)) !== null) {
     const before = content.slice(lastIndex, match.index);
     if (before.trim()) {
-      segments.push({ type: "html", content: await markdownToHtml(before) });
+      const html = await markdownToHtml(before);
+      segments.push(...splitHtmlOnCta(html));
     }
     segments.push({
       type: "code",
@@ -80,7 +106,8 @@ async function parseSegments(content: string): Promise<ContentSegment[]> {
 
   const after = content.slice(lastIndex);
   if (after.trim()) {
-    segments.push({ type: "html", content: await markdownToHtml(after) });
+    const html = await markdownToHtml(after);
+    segments.push(...splitHtmlOnCta(html));
   }
 
   return segments;
@@ -115,6 +142,10 @@ export function getAllPostMeta(): PostMeta[] {
       author: data.author ?? "",
       tags: data.tags ?? [],
       coverImage: data.coverImage,
+      authorName: data.authorName,
+      authorRole: data.authorRole,
+      authorGithub: data.authorGithub,
+      authorTwitter: data.authorTwitter,
     } satisfies PostMeta;
   });
 
@@ -141,6 +172,10 @@ export async function getPost(slug: string): Promise<Post | null> {
     author: data.author ?? "",
     tags: data.tags ?? [],
     coverImage: data.coverImage,
+    authorName: data.authorName,
+    authorRole: data.authorRole,
+    authorGithub: data.authorGithub,
+    authorTwitter: data.authorTwitter,
     segments,
     headings,
   };

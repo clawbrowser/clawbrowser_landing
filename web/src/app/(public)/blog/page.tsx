@@ -1,5 +1,13 @@
+import type { Metadata } from "next";
 import { getAllPostMeta } from "@/lib/blog";
 import { BlogGrid } from "@/components/blog/blog-grid";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+
+export const metadata: Metadata = {
+  title: "Blog",
+  description: "Thoughts on browser automation, AI agents, fingerprinting, and building reliable web infrastructure from the Clawbrowser team.",
+  alternates: { canonical: "https://clawbrowser.ai/blog" },
+};
 
 export default function BlogPage() {
   const posts = getAllPostMeta();
@@ -7,6 +15,9 @@ export default function BlogPage() {
   return (
     <div className="min-h-screen bg-[#FAFAF8] dark:bg-[#0c0c0e]">
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-6 py-16 text-center">
+        <div className="mx-auto max-w-md">
+          <Breadcrumbs crumbs={[{ label: "Home", href: "/" }, { label: "Blog" }]} />
+        </div>
         <p className="mb-3 text-sm font-medium tracking-widest text-zinc-400 dark:text-zinc-500 uppercase">
           Blog
         </p>
