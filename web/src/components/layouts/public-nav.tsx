@@ -65,6 +65,7 @@ export function PublicNav() {
         ))}
         <Link href="/docs" className={navLink}>Docs</Link>
         <Link href="/blog" className={navLink}>Blog</Link>
+        <Link href="/faq" className={navLink}>FAQ</Link>
       </div>
       <div className="flex items-center gap-2">
         <ThemeToggle />
