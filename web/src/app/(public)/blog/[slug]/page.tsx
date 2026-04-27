@@ -5,6 +5,7 @@ import Image from "next/image";
 import { getPost, getAllSlugs, type PostHeading, type ContentSegment } from "@/lib/blog";
 import { CodeBlock } from "@/components/docs/code-block";
 import { BlogCTA } from "@/components/blog/blog-cta";
+import { ThemedImage } from "@/components/blog/themed-image";
 import { AuthorCard, AuthorSidebar } from "@/components/blog/author-card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
@@ -75,13 +76,11 @@ function Segments({ segments }: { segments: ContentSegment[] }) {
     <>
       {segments.map((seg, i) =>
         seg.type === "html" ? (
-          <div
-            key={i}
-            className="prose-blog"
-            dangerouslySetInnerHTML={{ __html: seg.content }}
-          />
+          <div key={i} className="prose-blog" dangerouslySetInnerHTML={{ __html: seg.content }} />
         ) : seg.type === "cta" ? (
           <BlogCTA key={i} />
+        ) : seg.type === "themed-image" ? (
+          <ThemedImage key={i} light={seg.light} dark={seg.dark} alt={seg.alt} />
         ) : (
           <CodeBlock key={i} code={seg.value} />
         )

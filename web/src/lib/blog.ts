@@ -30,7 +30,8 @@ export interface PostHeading {
 export type ContentSegment =
   | { type: "html"; content: string }
   | { type: "code"; lang: string; value: string }
-  | { type: "cta" };
+  | { type: "cta" }
+  | { type: "themed-image"; light: string; dark: string; alt: string };
 
 export interface Post extends PostMeta {
   segments: ContentSegment[];
@@ -63,24 +64,41 @@ async function markdownToHtml(md: string): Promise<string> {
   return addHeadingIds(result.toString());
 }
 
-/** Split an HTML string on CTA comment markers, inserting cta segments */
-function splitHtmlOnCta(html: string): ContentSegment[] {
-  // Match <!-- CTA --> or <!--CTA--> (with or without spaces)
-  const ctaRe = /<!--\s*CTA\s*-->/gi;
-  const parts = html.split(ctaRe);
-  if (parts.length === 1) {
-    return [{ type: "html", content: html }];
+/** Parse a single <!-- ... --> comment into a segment or null */
+function parseComment(comment: string): ContentSegment | null {
+  const inner = comment.replace(/^<!--\s*/, "").replace(/\s*-->$/, "").trim();
+
+  if (/^CTA$/i.test(inner)) return { type: "cta" };
+
+  const tiMatch = inner.match(/^themed-image\s+light="([^"]+)"\s+dark="([^"]+)"(?:\s+alt="([^"]*)")?/i);
+  if (tiMatch) {
+    return { type: "themed-image", light: tiMatch[1], dark: tiMatch[2], alt: tiMatch[3] ?? "" };
   }
+
+  return null;
+}
+
+/** Split HTML on special comment markers (CTA, themed-image) */
+function splitHtmlOnMarkers(html: string): ContentSegment[] {
+  const commentRe = /<!--[\s\S]*?-->/g;
   const result: ContentSegment[] = [];
-  for (let i = 0; i < parts.length; i++) {
-    if (parts[i].trim()) {
-      result.push({ type: "html", content: parts[i] });
-    }
-    if (i < parts.length - 1) {
-      result.push({ type: "cta" });
-    }
+  let lastIndex = 0;
+  let match: RegExpExecArray | null;
+
+  while ((match = commentRe.exec(html)) !== null) {
+    const seg = parseComment(match[0]);
+    if (!seg) continue;
+
+    const before = html.slice(lastIndex, match.index);
+    if (before.trim()) result.push({ type: "html", content: before });
+    result.push(seg);
+    lastIndex = match.index + match[0].length;
   }
-  return result;
+
+  const after = html.slice(lastIndex);
+  if (after.trim()) result.push({ type: "html", content: after });
+
+  return result.length > 0 ? result : [{ type: "html", content: html }];
 }
 
 /** Split markdown into alternating html/code segments */
@@ -94,7 +112,7 @@ async function parseSegments(content: string): Promise<ContentSegment[]> {
     const before = content.slice(lastIndex, match.index);
     if (before.trim()) {
       const html = await markdownToHtml(before);
-      segments.push(...splitHtmlOnCta(html));
+      segments.push(...splitHtmlOnMarkers(html));
     }
     segments.push({
       type: "code",
@@ -107,7 +125,7 @@ async function parseSegments(content: string): Promise<ContentSegment[]> {
   const after = content.slice(lastIndex);
   if (after.trim()) {
     const html = await markdownToHtml(after);
-    segments.push(...splitHtmlOnCta(html));
+    segments.push(...splitHtmlOnMarkers(html));
   }
 
   return segments;
