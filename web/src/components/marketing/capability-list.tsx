@@ -23,9 +23,9 @@ export function CapabilityList() {
               Surfaces stay internally consistent
             </h2>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Profiles are generated to match real-world combinations—platform,
-              fonts, timezone, and proxy geography line up so you are not advertising
-              contradictory signals.
+              Profiles are generated to match real-world combinations. Platform,
+              fonts, timezone, and proxy geography line up when those values are
+              present, so you are not advertising contradictory signals.
             </p>
           </div>
           <ul className="space-y-3">

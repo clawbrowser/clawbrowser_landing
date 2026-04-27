@@ -1,10 +1,14 @@
 # Clawbrowser
 
-> Clawbrowser is a Chromium-based browser with managed fingerprints and transparent proxy routing, built for AI agent automation and multi-account management.
+> Clawbrowser is a Chromium-based browser with managed sessions, fingerprint profiles, and profile-bound proxy routing for AI agent automation and multi-account management.
 
 ## What Clawbrowser does
 
-Clawbrowser is a Chromium fork with an embedded library (libclaw) that spoofs 20+ browser fingerprint surfaces (Canvas, WebGL, AudioContext, navigator.*, screen, fonts, timezone, language, battery, plugins, and more), routes all traffic through a matching residential or datacenter proxy, and exposes a standard Chrome DevTools Protocol (CDP) endpoint fully compatible with Playwright, Puppeteer, and any CDP-based automation tool.
+Clawbrowser is a Chromium fork with native browser patches for supported browser fingerprint surfaces such as Canvas, WebGL, AudioContext, navigator properties, screen metrics, fonts, timezone, language, battery, plugins, media devices, WebRTC behavior, and speech voices. The public launcher manages named browser sessions and exposes a standard Chrome DevTools Protocol (CDP) endpoint for Playwright, Puppeteer, and other CDP-based automation tools.
+
+For proxy-backed fingerprint profiles, proxy credentials and geo metadata are bundled with the generated profile. Browser flags can be passed after `--` when a user needs direct fingerprint, country, city, or connection-type targeting.
+
+Clawbrowser does not claim to handle TLS/JA3 fingerprinting.
 
 ## Key pages
 
@@ -21,13 +25,22 @@ curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/script
 
 Targets: claude, codex, gemini, all
 
+## CLI
+
+- `clawbrowser start --session <name> -- <url>` starts or reattaches to a managed browser session.
+- `clawbrowser endpoint --session <name>` prints the local CDP endpoint.
+- `clawbrowser status --session <name>` prints session status.
+- `clawbrowser rotate --session <name>` restarts the managed session and passes `--regenerate` to the browser.
+- `clawbrowser stop --session <name>` stops the session.
+- `clawbrowser list --session <name>` lists cached browser profiles as JSON.
+
 ## Use cases
 
-- AI agent browser automation (anti-bot evasion at scale)
-- Multi-account management
-- Web scraping with fingerprint isolation
-- CDP automation with Playwright, Puppeteer
+- AI agent browser automation with profile isolation
+- Multi-account browser session management
+- Web automation with managed browser fingerprint profiles
+- CDP automation with Playwright, Puppeteer, and compatible tools
 
 ## Licensing
 
-Clawbrowser is commercial software. An API key is required. Obtain one at https://app.clawbrowser.ai.
+Clawbrowser is commercial software. An API key is required when a new fingerprint profile must be generated. Obtain one at https://app.clawbrowser.ai.

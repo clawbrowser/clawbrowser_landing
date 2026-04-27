@@ -6,7 +6,7 @@ import { PromptBlock } from "@/components/docs/prompt-block";
 export const metadata: Metadata = {
   title: "Documentation",
   description:
-    "Complete documentation for Clawbrowser: installation, CLI usage, fingerprint profiles, proxy setup, and AI agent integration with Playwright and Puppeteer.",
+    "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, proxy setup, and AI agent integration with Playwright and Puppeteer.",
   alternates: { canonical: "https://clawbrowser.ai/docs" },
 };
 
@@ -56,70 +56,88 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
 const quickStart = `export CLAWBROWSER_API_KEY=clawbrowser_xxxxx
 
-# First launch — generates fingerprint via API and caches it
-clawbrowser --fingerprint=my_agent_profile --remote-debugging-port=9222`;
+# Start a managed browser session
+clawbrowser start --session work -- https://example.com
+
+# Print the local CDP endpoint for your agent
+clawbrowser endpoint --session work
+
+# Or start a fingerprint-backed session when identity matters
+clawbrowser start --session identity -- --fingerprint=fp_work --country=US https://example.com`;
 
 const playwrightPython = `from playwright.async_api import async_playwright
 
 async with async_playwright() as p:
-    browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
+    endpoint = "http://127.0.0.1:9222"  # from: clawbrowser endpoint --session work
+    browser = await p.chromium.connect_over_cdp(endpoint)
     page = browser.contexts[0].pages[0]
     await page.goto("https://example.com")
     content = await page.content()`;
 
 const playwrightNode = `const { chromium } = require('playwright');
 
-const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await chromium.connectOverCDP(endpoint);
 const page = browser.contexts()[0].pages()[0];
 await page.goto('https://example.com');`;
 
 const puppeteer = `const puppeteer = require('puppeteer');
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
+const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await puppeteer.connect({ browserURL: endpoint });
 const [page] = await browser.pages();
 await page.goto('https://example.com');`;
 
-const cliRef = `# Launch with fingerprint profile
-clawbrowser --fingerprint=<profile_id>
+const cliRef = `# Start or reattach to a managed browser session
+clawbrowser start --session work -- https://example.com
 
-# Launch with CDP port for automation
-clawbrowser --fingerprint=<profile_id> --remote-debugging-port=9222
+# Print the CDP endpoint
+clawbrowser endpoint --session work
 
-# Launch in headless mode
-clawbrowser --fingerprint=<profile_id> --headless
+# Show session status
+clawbrowser status --session work
 
-# Launch vanilla (no fingerprint, no proxy)
-clawbrowser
+# Restart the managed session with --regenerate
+clawbrowser rotate --session work
 
-# List all local profiles
-clawbrowser --list
+# Stop the session
+clawbrowser stop --session work
 
-# Regenerate a fingerprint (new identity, preserves cookies/history)
-clawbrowser --fingerprint=<profile_id> --regenerate`;
+# List cached browser profiles
+clawbrowser list --session work
 
-const stdoutDefault = `[clawbrowser] Profile my_agent_profile loaded
-[clawbrowser] Proxy verified
-[clawbrowser] Fingerprint verified
-[clawbrowser] CDP listening on ws://127.0.0.1:9222
-[clawbrowser] Browser ready`;
+# Choose a CDP port
+clawbrowser start --session work --port 9222 -- https://example.com
 
-const stdoutJsonCmd = `clawbrowser --fingerprint=my_agent_profile --output=json`;
+# Pass browser-level fingerprint and geo flags
+clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential
 
-const stdoutJsonOutput = `{"event":"profile_loaded","profile_id":"my_agent_profile"}
-{"event":"proxy_verified"}
-{"event":"fingerprint_verified"}
-{"event":"cdp_ready","url":"ws://127.0.0.1:9222"}
-{"event":"ready"}`;
+# Keep the internal verification page enabled
+clawbrowser start --session work --verify -- https://example.com`;
 
-const multiProfile = `clawbrowser --fingerprint=agent_us_1 --remote-debugging-port=9222 &
-clawbrowser --fingerprint=agent_de_1 --remote-debugging-port=9223 &
-clawbrowser --fingerprint=agent_uk_1 --remote-debugging-port=9224 &`;
+const launcherOutput = `$ clawbrowser start --session work -- https://example.com
+http://127.0.0.1:9222
 
-const errors = `[clawbrowser] Error: CLAWBROWSER_API_KEY not set
-[clawbrowser] Error: cannot reach fingerprint API
-[clawbrowser] Error: proxy connection failed
-[clawbrowser] Error: fingerprint verification failed
-[clawbrowser] Error: out of credits, please top up at clawbrowser.ai`;
+$ clawbrowser status --session work
+session=work status=running endpoint=http://127.0.0.1:9222 backend=app`;
+
+const listProfiles = `$ clawbrowser list --session work
+[
+   {
+      "id": "fp_work",
+      "created_at": "2026-04-27T10:00:00Z",
+      "country": "US"
+   }
+]`;
+
+const multiProfile = `clawbrowser start --session agent-us --port 9222 -- https://example.com
+clawbrowser start --session agent-de --port 9223 -- https://example.com
+clawbrowser start --session agent-uk --port 9224 -- https://example.com`;
+
+const errors = `[clawbrowser] ERROR: API key cannot be empty.
+[clawbrowser] ERROR: Timed out waiting for CDP on port 9222
+[clawbrowser] error: invalid API key
+[clawbrowser] error: cannot reach API at https://api.clawbrowser.ai`;
 
 export default function DocsPage() {
   return (
@@ -133,7 +151,7 @@ export default function DocsPage() {
           <NavLink href="#quick-start">Quick Start</NavLink>
           <NavLink href="#agent-integration">Agent Integration</NavLink>
           <NavLink href="#cli">CLI Reference</NavLink>
-          <NavLink href="#output-modes">Output Modes</NavLink>
+          <NavLink href="#output-modes">Launcher Output</NavLink>
           <NavLink href="#multi-profile">Multi-Profile</NavLink>
           <NavLink href="#tips">Tips</NavLink>
           <NavLink href="#errors">Error Handling</NavLink>
@@ -146,16 +164,17 @@ export default function DocsPage() {
           Documentation
         </h1>
         <p className="mt-3 text-lg text-zinc-600">
-          AI agent integration guide — managed fingerprints and proxy routing
+          AI agent integration guide — managed sessions, fingerprint profiles, and proxy routing
           over standard CDP.
         </p>
 
         <H2 id="quick-start">Quick Start</H2>
         <PromptBlock />
         <P>
-          Set your API key, then launch with a fingerprint profile ID. On first
-          use the profile is generated from the API and cached locally —
-          subsequent launches reuse the same identity, cookies, and session state.
+          Let the launcher prompt once and save the key to browser-managed
+          config, or use a temporary API key environment variable for
+          non-interactive automation. Start a named session, then use
+          fingerprint flags after <Inline>--</Inline> when identity matters.
         </P>
         <CodeBlock code={quickStart} />
 
@@ -175,69 +194,73 @@ export default function DocsPage() {
         <H2 id="cli">CLI Reference</H2>
         <CodeBlock code={cliRef} />
 
-        <H2 id="output-modes">Output Modes</H2>
-        <H3>Default (clean)</H3>
-        <P>Suppresses Chromium noise. Only Clawbrowser status lines are printed.</P>
-        <CodeBlock code={stdoutDefault} />
-        <H3>JSON mode</H3>
+        <H2 id="output-modes">Launcher Output</H2>
+        <H3>Endpoint and status</H3>
         <P>
-          Pass <Inline>--output=json</Inline> for machine-readable
-          newline-delimited JSON events. Parse the <Inline>ready</Inline> event
-          to know when the browser is available for automation.
+          <Inline>start</Inline> prints the local HTTP CDP endpoint after
+          readiness checks pass. Use <Inline>status</Inline> or{" "}
+          <Inline>endpoint</Inline> when an agent needs to reconnect later.
         </P>
-        <CodeBlock code={stdoutJsonCmd} />
-        <CodeBlock code={stdoutJsonOutput} />
-        <H3>Verbose mode</H3>
+        <CodeBlock code={launcherOutput} />
+        <H3>Profile list</H3>
         <P>
-          Pass <Inline>--verbose</Inline> to include full Chromium logs alongside
-          Clawbrowser messages — useful for debugging.
+          <Inline>list</Inline> asks the browser to print cached fingerprint
+          profiles as JSON. It is not a streaming readiness event feed.
+        </P>
+        <CodeBlock code={listProfiles} />
+        <H3>Browser logs</H3>
+        <P>
+          Browser and container logs are still useful for debugging startup
+          failures, but agents should use the endpoint and status commands for
+          normal readiness detection.
         </P>
 
         <H2 id="multi-profile">Multi-Profile Management</H2>
         <P>
-          Each profile carries a unique fingerprint, a dedicated proxy, and
-          isolated browser state (cookies, localStorage, history). Run multiple
-          profiles simultaneously on different CDP ports:
+          Each named session has its own tracked CDP endpoint. Run multiple
+          sessions simultaneously by giving each one a different session name
+          and port. For identity separation, use distinct fingerprint IDs.
         </P>
         <CodeBlock code={multiProfile} />
 
         <H2 id="tips">Tips for AI Agents</H2>
         <ul className="mt-4 list-disc space-y-2 pl-6 text-zinc-600">
           <li>
-            <strong className="text-zinc-950">Reuse profiles</strong>{" "}
-            for session continuity — cookies and login state persist across launches.
+            <strong className="text-zinc-950">Reuse sessions and profile IDs</strong>{" "}
+            for continuity. When using fingerprint mode, the same fingerprint ID
+            reuses its cached profile data.
           </li>
           <li>
-            Use <Inline>--output=json</Inline> to programmatically detect when
-            the browser is ready.
+            Use <Inline>clawbrowser endpoint --session &lt;name&gt;</Inline> to
+            reconnect to a running session.
           </li>
           <li>
-            Use <Inline>--skip-verify</Inline> if your agent handles verification
-            and you want faster startup.
+            The launcher skips the verification page by default for faster
+            startup. Pass <Inline>--verify</Inline> when you need to inspect it.
           </li>
           <li>
             <strong className="text-zinc-950">One proxy per session</strong>{" "}
-            — the proxy does not rotate mid-session, which is more realistic for
-            anti-detect purposes.
+            — for proxy-backed profiles, the proxy does not rotate mid-session.
           </li>
           <li>
             <strong className="text-zinc-950">
               Don{"'"}t override fingerprint properties via CDP
             </strong>{" "}
-            — Clawbrowser handles all spoofing at the engine level. CDP-level
-            overrides may conflict and create detectable inconsistencies.
+            — Clawbrowser handles fingerprint overrides at the engine level.
+            CDP-level overrides may conflict and create detectable inconsistencies.
           </li>
           <li>
-            Use descriptive profile IDs like <Inline>us_residential_1</Inline>{" "}
-            or <Inline>de_scraper_main</Inline> for easier management.
+            Use descriptive session names like <Inline>agent-us</Inline>{" "}
+            or <Inline>de-scraper-main</Inline> for easier management.
           </li>
         </ul>
 
         <H2 id="errors">Error Handling</H2>
         <P>
-          Monitor stdout (or JSON events) for errors. On error the process exits
-          with a non-zero exit code — check it and parse the message to decide
-          whether to retry or alert.
+          The launcher exits non-zero on startup failures. Check the exit code
+          and the error line to decide whether to retry, restart the session, or
+          alert a human. For fingerprint sessions, <Inline>rotate</Inline> passes
+          <Inline>--regenerate</Inline> to the browser.
         </P>
         <CodeBlock code={errors} />
 

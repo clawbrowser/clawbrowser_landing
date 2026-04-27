@@ -9,42 +9,44 @@ const agentPrompt = `# Task: Install and Deploy Clawbrowser
 You are an AI agent. Your task is to install and configure Clawbrowser on the target system so it is ready for browser automation.
 
 ## What is Clawbrowser?
-Clawbrowser is an anti-detect browser built on Chromium that provides:
-- Managed browser fingerprints (unique, realistic, cached locally)
-- Proxy routing (one proxy per session for realistic behavior)
+Clawbrowser is a Chromium-based browser built for automation that provides:
+- Managed browser sessions with reusable browser state
+- Browser fingerprint profiles with profile-bound proxy routing
 - Standard Chrome DevTools Protocol (CDP) interface
-- Machine-readable JSON output mode for AI agents
 
 ## Prerequisites
 Before starting, confirm:
-- Operating system: [TARGET_OS] (e.g., Ubuntu 22.04, macOS 14, Windows 11)
+- Operating system: [TARGET_OS] (macOS or Linux)
 - Architecture: [ARCH] (e.g., x86_64, arm64)
-- Clawbrowser API key: [CLAWBROWSER_API_KEY] — obtain one at https://clawbrowser.ai
+- Clawbrowser API key: [CLAWBROWSER_API_KEY] - obtain one at https://app.clawbrowser.ai
 - Internet access available: yes/no
 
 ## Installation Steps
 
-### 1. Download Clawbrowser
-Download the appropriate binary for [TARGET_OS]/[ARCH] from:
-[DOWNLOAD_URL] (check https://github.com/clawbrowser/clawbrowser/releases for the latest release)
+### 1. Install Clawbrowser
+Use the official install script for this agent:
 
-### 2. Install
-[INSTALL_INSTRUCTIONS] (e.g., extract archive, move binary to /usr/local/bin, set permissions)
+curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- <target>
 
-### 3. Set API key
+Targets: claude, codex, gemini, all.
+
+### 2. Set API key
 export CLAWBROWSER_API_KEY=[CLAWBROWSER_API_KEY]
 
-### 4. Verify installation
-clawbrowser --version
+Use this as a temporary environment variable for the current automation run. If the launcher prompts for the key, let it save the key to ~/.config/clawbrowser/config.json.
 
-### 5. Launch with a fingerprint profile
-clawbrowser --fingerprint=my_agent_profile --remote-debugging-port=9222
+### 3. Start a managed session
+clawbrowser start --session work -- https://example.com
 
-### 6. Connect your automation framework
-browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
+### 4. Read the CDP endpoint
+clawbrowser endpoint --session work
+
+### 5. Connect your automation framework
+endpoint = "http://127.0.0.1:9222"  # replace with the endpoint returned by clawbrowser endpoint
+browser = await p.chromium.connect_over_cdp(endpoint)
 
 ## Done
-Confirm Clawbrowser is running and the CDP endpoint is reachable at http://127.0.0.1:9222.
+Confirm Clawbrowser is running and the CDP endpoint returned by the launcher is reachable.
 `;
 
 function CopyIcon() {

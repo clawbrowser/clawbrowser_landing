@@ -1,14 +1,14 @@
 const proxyItems = [
   {
-    text: "Provider-agnostic: residential, datacenter, or other types expressed in the profile.",
+    text: "For proxy-backed profiles, proxy credentials and geo metadata come from the generated profile.",
   },
   {
-    text: "One proxy per launch; no mid-session rotation inside a single run.",
+    text: "One proxy identity per browser session; no mid-session rotation inside a single run.",
   },
   {
-    code: "--regenerate",
-    prefix: "If the proxy is broken or expired, relaunch after fixing credentials or run with",
-    suffix: "to fetch a fresh profile from the API.",
+    code: "clawbrowser rotate --session <name>",
+    prefix: "To restart a managed session with",
+    suffix: "use rotate; sessions started with fingerprint flags will pass --regenerate to the browser.",
   },
 ];
 
@@ -23,9 +23,9 @@ export function ProxySection() {
               Proxy routing from the fingerprint profile
             </h2>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Proxy credentials ride along with the fingerprint payload. Clawbrowser
-              does not pick a separate proxy stack at launch—whatever the profile
-              contains is what the browser uses for that session.
+              When a generated fingerprint profile includes proxy credentials,
+              Clawbrowser uses that profile-bound proxy configuration for the
+              browser session.
             </p>
           </div>
           <ul className="space-y-3">

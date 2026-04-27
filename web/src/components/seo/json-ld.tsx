@@ -8,7 +8,7 @@ export function WebsiteJsonLd() {
           "@type": "WebSite",
           name: "Clawbrowser",
           url: "https://clawbrowser.ai",
-          description: "Chromium-based browser with managed fingerprints and proxy routing for AI agent automation.",
+          description: "Chromium-based browser with managed sessions, fingerprint profiles, and proxy routing for AI agent automation.",
           publisher: {
             "@type": "Organization",
             name: "Clawbrowser",

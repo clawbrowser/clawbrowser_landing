@@ -1,29 +1,58 @@
-# Clawbrowser.ai — AI Agent Integration Guide
+# Clawbrowser.ai - AI Agent Integration Guide
 
 ## Overview
 
-Clawbrowser.ai is an anti-detect browser that provides managed fingerprint identities and proxy routing. AI agents connect via standard CDP (Chrome DevTools Protocol) using Playwright or Puppeteer. All fingerprint spoofing and proxy routing is transparent — agents interact with a normal browser.
+Clawbrowser.ai is a Chromium-based browser for managed sessions, browser fingerprint profiles, and profile-bound proxy routing. AI agents connect through standard CDP (Chrome DevTools Protocol) using Playwright, Puppeteer, or another CDP client.
+
+The current public launcher manages named sessions. Browser-level fingerprint and geo flags still pass through after `--` when an identity-sensitive workflow needs them.
 
 ## Quick Start
 
-### 1. Set API Key
+### 1. Provide an API key when needed
+
+The launcher can prompt once and save the key to browser-managed config:
+
+```bash
+~/.config/clawbrowser/config.json
+```
+
+For non-interactive automation, a temporary environment variable is also supported:
 
 ```bash
 export CLAWBROWSER_API_KEY=clawbrowser_xxxxx
 ```
 
-### 2. Launch Browser with a Fingerprint Profile
+Do not store the API key in shell startup files or agent config.
+
+### 2. Start a managed session
 
 ```bash
-# First launch with a new profile (auto-detected, generates fingerprint via API)
-clawbrowser --fingerprint=my_agent_profile --remote-debugging-port=9222
+clawbrowser start --session work -- https://example.com
 ```
 
-On first use, clawbrowser detects the profile doesn't exist, calls the backend API to generate a fingerprint, saves it locally, and launches with full identity spoofing and proxy routing.
+The command prints a local CDP endpoint after the browser is ready:
 
-Subsequent launches with the same profile ID reuse the cached fingerprint — same identity, same cookies, same session state.
+```text
+http://127.0.0.1:9222
+```
 
-### 3. Connect Your Agent
+Read the endpoint later with:
+
+```bash
+clawbrowser endpoint --session work
+```
+
+### 3. Use a fingerprint-backed profile when identity matters
+
+```bash
+clawbrowser start --session identity -- --fingerprint=fp_work --country=US https://example.com
+```
+
+On first use of a fingerprint ID, the browser calls the backend API, saves the generated profile locally, and reuses it on later starts. For proxy-backed profiles, proxy credentials are part of the generated profile.
+
+### 4. Connect your agent
+
+Use the endpoint printed by `start` or `endpoint`.
 
 **Playwright (Python):**
 
@@ -31,10 +60,10 @@ Subsequent launches with the same profile ID reuse the cached fingerprint — sa
 from playwright.async_api import async_playwright
 
 async with async_playwright() as p:
-    browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
+    endpoint = "http://127.0.0.1:9222"  # from: clawbrowser endpoint --session work
+    browser = await p.chromium.connect_over_cdp(endpoint)
     page = browser.contexts[0].pages[0]
     await page.goto("https://example.com")
-    content = await page.content()
 ```
 
 **Playwright (Node.js):**
@@ -42,7 +71,8 @@ async with async_playwright() as p:
 ```javascript
 const { chromium } = require('playwright');
 
-const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await chromium.connectOverCDP(endpoint);
 const page = browser.contexts()[0].pages()[0];
 await page.goto('https://example.com');
 ```
@@ -52,7 +82,8 @@ await page.goto('https://example.com');
 ```javascript
 const puppeteer = require('puppeteer');
 
-const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
+const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await puppeteer.connect({ browserURL: endpoint });
 const [page] = await browser.pages();
 await page.goto('https://example.com');
 ```
@@ -60,97 +91,87 @@ await page.goto('https://example.com');
 ## CLI Reference
 
 ```bash
-# Launch with fingerprint profile
-clawbrowser --fingerprint=<profile_id>
+# Start or reattach to a managed browser session
+clawbrowser start --session work -- https://example.com
 
-# Launch with CDP port for automation
-clawbrowser --fingerprint=<profile_id> --remote-debugging-port=9222
+# Print the CDP endpoint
+clawbrowser endpoint --session work
 
-# Launch in headless mode
-clawbrowser --fingerprint=<profile_id> --headless
+# Show session status
+clawbrowser status --session work
 
-# Launch vanilla (no fingerprint, no proxy)
-clawbrowser
+# Restart the managed session and pass --regenerate to the browser
+clawbrowser rotate --session work
 
-# List all local profiles
-clawbrowser --list
+# Stop the session
+clawbrowser stop --session work
 
-# Regenerate a fingerprint (new identity, preserves cookies/history)
-clawbrowser --fingerprint=<profile_id> --regenerate
+# List cached browser profiles as JSON
+clawbrowser list --session work
+
+# Choose a CDP port
+clawbrowser start --session work --port 9222 -- https://example.com
+
+# Pass browser-level fingerprint and geo flags
+clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential https://example.com
+
+# Keep the internal verification page enabled
+clawbrowser start --session work --verify -- https://example.com
 ```
 
-## Stdout Modes
+## Launcher Output
 
-### Default (clean)
+`start` prints the local HTTP CDP endpoint when readiness checks pass.
 
-Suppresses Chromium noise. Only outputs clawbrowser status messages:
+```text
+$ clawbrowser start --session work -- https://example.com
+http://127.0.0.1:9222
 
-```
-[clawbrowser] Profile my_agent_profile loaded
-[clawbrowser] Proxy verified
-[clawbrowser] Fingerprint verified
-[clawbrowser] CDP listening on ws://127.0.0.1:9222
-[clawbrowser] Browser ready
+$ clawbrowser status --session work
+session=work status=running endpoint=http://127.0.0.1:9222 backend=app
 ```
 
-### JSON mode (for machine consumption)
+`list` prints cached fingerprint profiles as JSON. It is not a streaming readiness event feed.
+
+```text
+$ clawbrowser list --session work
+[
+   {
+      "id": "fp_work",
+      "created_at": "2026-04-27T10:00:00Z",
+      "country": "US"
+   }
+]
+```
+
+## Multi-Session Management
+
+Each named session has its own tracked CDP endpoint. For identity separation, use distinct fingerprint IDs.
 
 ```bash
-clawbrowser --fingerprint=my_agent_profile --output=json
-```
-
-```json
-{"event":"profile_loaded","profile_id":"my_agent_profile"}
-{"event":"proxy_verified"}
-{"event":"fingerprint_verified"}
-{"event":"cdp_ready","url":"ws://127.0.0.1:9222"}
-{"event":"ready"}
-```
-
-Parse the `ready` event to know when the browser is available for automation.
-
-### Verbose mode (debugging)
-
-```bash
-clawbrowser --fingerprint=my_agent_profile --verbose
-```
-
-Outputs full Chromium logs alongside clawbrowser messages.
-
-## Multi-Profile Management
-
-Each profile is a complete browser identity:
-
-- Unique fingerprint (canvas, WebGL, audio, navigator, screen, fonts, etc.)
-- Separate proxy (country, city, connection type)
-- Isolated browser state (cookies, localStorage, history, bookmarks)
-
-```bash
-# Run multiple profiles simultaneously on different ports
-clawbrowser --fingerprint=agent_us_1 --remote-debugging-port=9222 &
-clawbrowser --fingerprint=agent_de_1 --remote-debugging-port=9223 &
-clawbrowser --fingerprint=agent_uk_1 --remote-debugging-port=9224 &
+clawbrowser start --session agent-us --port 9222 -- https://example.com
+clawbrowser start --session agent-de --port 9223 -- https://example.com
+clawbrowser start --session agent-uk --port 9224 -- https://example.com
 ```
 
 ## Tips for AI Agents
 
-- **Reuse profiles** for session continuity — cookies and login state persist across launches
-- **Use `--output=json`** to programmatically detect when the browser is ready
-- **Use `--skip-verify`** if your agent handles verification and you want faster startup
-- **One proxy per session** — proxy does not rotate mid-session, which is more realistic
-- **Don't override fingerprint properties via CDP** — clawbrowser handles all spoofing at the engine level. CDP-level overrides may conflict and create detectable inconsistencies
-- **Profile ID naming** — use descriptive IDs (`us_residential_1`, `de_scraper_main`) for easier management
+- Reuse session names for endpoint continuity, and reuse fingerprint IDs when you need the same generated profile data.
+- Use `clawbrowser endpoint --session <name>` to reconnect to a running session.
+- The launcher skips the verification page by default for faster startup. Pass `--verify` when you need to inspect it.
+- For fingerprint-backed sessions, `clawbrowser rotate --session <name>` passes `--regenerate` to the browser.
+- One proxy identity is used per browser session; proxy routing does not rotate mid-session.
+- Do not override fingerprint properties via CDP. Browser-level fingerprint patches and CDP-level overrides can conflict.
 
 ## Error Handling
 
-Monitor stdout (or JSON events) for errors:
+The launcher exits non-zero on startup failures. Check the exit code and the error line to decide whether to retry, restart the session, or alert a human.
 
-```
-[clawbrowser] Error: CLAWBROWSER_API_KEY not set
-[clawbrowser] Error: cannot reach fingerprint API
-[clawbrowser] Error: proxy connection failed
-[clawbrowser] Error: fingerprint verification failed
-[clawbrowser] Error: out of credits, please top up at clawbrowser.ai
-```
+Common errors include:
 
-On error, the process exits with a non-zero exit code. Agents should check the exit code and parse the error message to decide whether to retry or alert.
+```text
+[clawbrowser] ERROR: API key cannot be empty.
+[clawbrowser] ERROR: Timed out waiting for CDP on port 9222
+[clawbrowser] error: invalid API key
+[clawbrowser] error: cannot reach API at https://api.clawbrowser.ai
+```

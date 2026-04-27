@@ -3,13 +3,13 @@ const audiences = [
     label: "AI agents",
     title: "AI agents",
     description:
-      "Automate with standard CDP—Playwright, Puppeteer, or anything that speaks DevTools. Fingerprints and proxy routing stay consistent so your agent sees a normal browser, not a brittle puppet.",
+      "Automate with standard CDP. Playwright, Puppeteer, and other DevTools clients attach to a real browser session while fingerprints and proxy routing stay inside the browser.",
   },
   {
     label: "Multi-account",
     title: "Multi-account operators",
     description:
-      "Each fingerprint ID maps to its own profile directory: cookies, storage, and identity move together. Separate accounts stay separated on disk by design.",
+      "Use separate session names and fingerprint IDs to keep endpoints, cookies, storage, generated fingerprint data, and proxy-backed identities organized.",
   },
 ];
 
@@ -21,7 +21,7 @@ export function ProblemSolutionSection() {
     >
       <div className="mx-auto max-w-5xl space-y-14">
         <div className="space-y-3 text-center">
-          <p className="text-sm font-medium text-cyan-600">Who it's for</p>
+          <p className="text-sm font-medium text-cyan-600">Who it&apos;s for</p>
           <h2 id="audience-heading" className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50" style={{ letterSpacing: "-0.5px" }}>
             Who Clawbrowser is for
           </h2>

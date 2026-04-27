@@ -9,14 +9,14 @@ export function ArchitectureSummary() {
         <div className="space-y-5">
           <p className="text-sm font-medium text-cyan-600">Architecture</p>
           <h2 id="architecture-heading" className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50" style={{ letterSpacing: "-0.5px" }}>
-            One browser binary, one process
+            One profile, consistent runtime
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Clawbrowser pairs a Chromium fork with an embedded Rust library,{" "}
-            <strong className="font-medium text-zinc-900 dark:text-zinc-100">libclaw</strong>,
-            for fingerprint profiles and proxy credentials. At launch, your profile
-            is loaded so renderer and GPU processes read the same values—no per-call
-            glue from your automation code.
+            Clawbrowser is a Chromium fork with native patches for fingerprint
+            profiles and proxy credentials. In fingerprint mode, the generated
+            profile is loaded into the relevant browser processes early, so
+            renderer and GPU code read the same process-local values without
+            automation-side glue.
           </p>
         </div>
 
@@ -29,9 +29,9 @@ export function ArchitectureSummary() {
             </div>
             <h3 className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Built-in verification</h3>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              On startup the browser can run checks that proxy egress matches the
-              profile and that key JavaScript surfaces match what was generated—so
-              failures are obvious before your agent touches the page.
+              The browser includes an internal verification page for checking
+              proxy egress and generated JavaScript surfaces when you need to
+              validate an identity before your agent touches the page.
             </p>
           </div>
 

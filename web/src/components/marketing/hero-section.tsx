@@ -17,7 +17,7 @@ Targets:
 Fallback references:
 - GitHub repo: https://github.com/clawbrowser/clawbrowser
 - Latest release: https://github.com/clawbrowser/clawbrowser/releases/latest
-- Container image: docker.io/clawbrowser/clawbrowser:latest (for VPS/headless only)
+- Container image: docker.io/clawbrowser/clawbrowser:latest (for VPS, server, no-display systems, or Docker fallback)
 - API key dashboard: https://app.clawbrowser.ai
 
 Requirements:
@@ -27,7 +27,7 @@ Requirements:
 - On desktop/macOS, the launcher uses Clawbrowser.app automatically.
 - Install the correct client integration automatically for the detected target.
 - Before asking for an API key, check ~/.config/clawbrowser/config.json — if api_key is already present, skip the prompt entirely.
-- Ask for the API key only if first startup actually requires it.
+- Ask for the API key only if no saved key is available and the launcher prompts for it.
 - After obtaining the API key, persist it immediately to browser-managed config:
     CONFIG_DIR="\${XDG_CONFIG_HOME:-\$HOME/.config}/clawbrowser"
     mkdir -p "\$CONFIG_DIR"
@@ -38,7 +38,7 @@ p.write_text(json.dumps({'api_key': sys.argv[1]}, separators=(',',':')) + '\\n')
 p.chmod(0o600)
 " "THE_KEY"
   This ensures the key is never prompted again.
-- Never store the API key in shell rc files, environment variables, or agent config.
+- Never store the API key in shell rc files or agent config. A one-shot CLAWBROWSER_API_KEY environment variable is acceptable for the current command, but browser-managed config is preferred.
 - Verify by starting Clawbrowser and confirming a live CDP endpoint responds.
 - Only ask for manual action if automation truly cannot complete.
 `;
@@ -98,7 +98,7 @@ export function HeroSection() {
 
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-zinc-500 dark:text-zinc-400 md:text-xl">
           Clawbrowser is a Chromium fork with built-in fingerprint management
-          and transparent proxy routing. Stop fighting captchas and bot detection at scale.
+          and profile-bound proxy routing for CDP automation.
         </p>
 
         {/* Pre-built prompt block */}

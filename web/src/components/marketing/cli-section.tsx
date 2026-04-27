@@ -25,12 +25,14 @@ function CopyIcon() {
 const lines = [
   { type: "env", text: "export CLAWBROWSER_API_KEY=clawbrowser_xxxxx" },
   { type: "gap" },
-  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123" },
-  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --regenerate" },
-  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --remote-debugging-port=9222" },
-  { type: "cmd", text: "clawbrowser --fingerprint=fp_abc123 --headless" },
-  { type: "cmd", text: "clawbrowser --list" },
-  { type: "cmd", text: "clawbrowser" },
+  { type: "cmd", text: "clawbrowser start --session work -- https://example.com" },
+  { type: "cmd", text: "clawbrowser endpoint --session work" },
+  { type: "cmd", text: "clawbrowser status --session work" },
+  { type: "cmd", text: "clawbrowser rotate --session work" },
+  { type: "cmd", text: "clawbrowser stop --session work" },
+  { type: "cmd", text: "clawbrowser list --session work" },
+  { type: "gap" },
+  { type: "cmd", text: "clawbrowser start --session us -- --fingerprint=fp_us --country=US" },
 ];
 
 export function CliSection() {
@@ -54,9 +56,12 @@ export function CliSection() {
             CLI that stays familiar
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            The executable is Chromium with Clawbrowser hooks. Standard Chromium
-            flags pass through; Clawbrowser adds profile-oriented commands for
-            fingerprints and automation-friendly output.
+            Use the launcher to manage named browser sessions. It prints the
+            local CDP endpoint for your agent, and browser flags after{" "}
+            <code className="rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-800 dark:text-zinc-300">
+              --
+            </code>{" "}
+            still pass through when you need fingerprint or geo targeting.
           </p>
         </div>
         <div className="overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm">

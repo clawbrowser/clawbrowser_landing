@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s — Clawbrowser",
   },
   description:
-    "Chromium-based browser with managed fingerprints and proxy routing for AI automation and multi-account use.",
+    "Chromium-based browser with managed sessions, fingerprint profiles, and proxy routing for AI automation and multi-account use.",
 };
 
 export default function RootLayout({

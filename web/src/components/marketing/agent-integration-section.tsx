@@ -26,21 +26,24 @@ const snippets = [
   {
     lang: "Python",
     label: "Playwright · Python",
-    code: `browser = await p.chromium.connect_over_cdp("http://127.0.0.1:9222")
+    code: `endpoint = "http://127.0.0.1:9222"  # from: clawbrowser endpoint --session work
+browser = await p.chromium.connect_over_cdp(endpoint)
 page = browser.contexts[0].pages[0]
 await page.goto("https://example.com")`,
   },
   {
     lang: "Node",
     label: "Playwright · Node",
-    code: `const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+    code: `const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await chromium.connectOverCDP(endpoint);
 const page = browser.contexts()[0].pages()[0];
 await page.goto('https://example.com');`,
   },
   {
     lang: "Puppeteer",
     label: "Puppeteer",
-    code: `const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
+    code: `const endpoint = 'http://127.0.0.1:9222'; // from: clawbrowser endpoint --session work
+const browser = await puppeteer.connect({ browserURL: endpoint });
 const [page] = await browser.pages();
 await page.goto('https://example.com');`,
   },
@@ -93,12 +96,12 @@ export function AgentIntegrationSection() {
             Connect over standard CDP
           </h2>
           <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Launch with{" "}
+            Start a managed session, then read its endpoint with{" "}
             <code className="rounded-md bg-zinc-100 dark:bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-800 dark:text-zinc-300">
-              --remote-debugging-port
+              clawbrowser endpoint --session &lt;name&gt;
             </code>
-            , then attach the same way you would to any Chromium build. Spoofing
-            and proxying are invisible to your automation.
+            . Attach the same way you would to any Chromium build. Spoofing and
+            proxying are invisible to your automation.
           </p>
         </div>
 

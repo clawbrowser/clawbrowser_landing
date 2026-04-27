@@ -12,7 +12,7 @@ export default function PublicLayout({
       <footer className="border-t border-zinc-200 px-6 py-4 text-center text-sm text-zinc-600 dark:border-zinc-800 dark:text-zinc-400">
         <p>© {new Date().getFullYear()} Clawbrowser. All rights reserved.</p>
         <p className="mt-1">
-          Available for <strong className="font-medium text-zinc-900 dark:text-zinc-100">macOS</strong> and <strong className="font-medium text-zinc-900 dark:text-zinc-100">Linux</strong>. Windows support is on the roadmap.
+          Available as a <strong className="font-medium text-zinc-900 dark:text-zinc-100">macOS</strong> desktop app and <strong className="font-medium text-zinc-900 dark:text-zinc-100">Linux</strong> container/headless runtime. Windows support is on the roadmap.
         </p>
       </footer>
     </div>

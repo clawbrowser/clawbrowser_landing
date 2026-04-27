@@ -11,31 +11,31 @@ export const metadata: Metadata = {
 const faqs = [
   {
     q: "What is Clawbrowser?",
-    a: "Clawbrowser is a Chromium fork with a built-in library (libclaw) that spoofs 20+ browser fingerprint surfaces and routes traffic through a matching proxy. It exposes a standard Chrome DevTools Protocol (CDP) endpoint, making it compatible with Playwright, Puppeteer, and any CDP-based automation tool.",
+    a: "Clawbrowser is a Chromium fork with native patches for browser fingerprint profiles and profile-bound proxy routing. It exposes a standard Chrome DevTools Protocol (CDP) endpoint, making it compatible with Playwright, Puppeteer, and CDP-based automation tools.",
   },
   {
-    q: "How is Clawbrowser different from a regular Chromium or other anti-detect browsers?",
-    a: "Unlike regular Chromium, Clawbrowser spoofs fingerprint surfaces at the engine level (not via injected JavaScript), so detection is significantly harder. Compared to other anti-detect browsers, Clawbrowser is designed specifically for AI agents and automation — it exposes a CDP endpoint, outputs machine-readable JSON, and manages proxy credentials automatically per profile.",
+    q: "How is Clawbrowser different from regular Chromium or other browser-profile tools?",
+    a: "Unlike regular Chromium, Clawbrowser changes fingerprint behavior inside the browser engine instead of relying on page-level JavaScript injection. Compared to traditional profile browsers, the public launcher is built for automation: it manages named sessions, prints a local CDP endpoint, and keeps proxy credentials tied to the generated profile.",
   },
   {
     q: "What fingerprint surfaces does Clawbrowser spoof?",
-    a: "Clawbrowser spoofs Canvas, WebGL, AudioContext, navigator.* properties (userAgent, platform, languages, hardware concurrency, device memory), screen resolution, fonts, timezone, language, battery status, plugins, and speech synthesis voices — with full internal consistency between all surfaces.",
+    a: "Clawbrowser patches surfaces such as Canvas, WebGL, AudioContext, navigator.* properties (userAgent, platform, languages, hardware concurrency, device memory), screen resolution, fonts, timezone, language, battery status, plugins, media devices, WebRTC-related behavior, and speech synthesis voices. Values are loaded from the generated profile so related surfaces stay consistent.",
   },
   {
     q: "Do I need to configure proxies separately?",
-    a: "No. Proxy credentials are bundled with each fingerprint profile via the Clawbrowser API. When you create or regenerate a profile, the backend assigns matching proxy credentials automatically. You don't manage proxies separately.",
+    a: "Normally, no for proxy-backed profiles. Proxy credentials are bundled with the generated fingerprint profile via the Clawbrowser API. The browser reuses the cached fingerprint profile until that profile is regenerated.",
   },
   {
     q: "How do I get an API key?",
-    a: "Sign up at app.clawbrowser.ai. After creating an account, your API key will be available in the dashboard. Set it as the CLAWBROWSER_API_KEY environment variable or store it in ~/.config/clawbrowser/config.json.",
+    a: "Sign up at app.clawbrowser.ai. After creating an account, your API key is available in the dashboard. Set CLAWBROWSER_API_KEY or let the launcher prompt once and save it to ~/.config/clawbrowser/config.json.",
   },
   {
     q: "Can I use Clawbrowser with Playwright or Puppeteer?",
-    a: "Yes. Start Clawbrowser with --remote-debugging-port=9222, then connect your framework to the CDP endpoint:\n\nPlaywright: browser = await chromium.connectOverCDP('http://127.0.0.1:9222')\nPuppeteer: browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' })",
+    a: "Yes. Start a managed session, read its endpoint, then connect your framework to that CDP URL:\n\nclawbrowser start --session work -- https://example.com\nclawbrowser endpoint --session work\n\nPlaywright: browser = await chromium.connectOverCDP(endpoint)\nPuppeteer: browser = await puppeteer.connect({ browserURL: endpoint })",
   },
   {
     q: "What platforms does Clawbrowser support?",
-    a: "macOS and Linux are supported in the current release. Windows support is on the roadmap. For headless/VPS deployments, use the Docker image: docker.io/clawbrowser/clawbrowser:latest.",
+    a: "Clawbrowser is available as a macOS desktop app and as a Linux container/headless runtime. Windows support is on the roadmap. For VPS or CI deployments, use the Docker-backed launcher/container image: docker.io/clawbrowser/clawbrowser:latest.",
   },
   {
     q: "How do I install Clawbrowser for Claude Code or another AI agent?",
@@ -43,19 +43,19 @@ const faqs = [
   },
   {
     q: "What happens if my proxy connection fails?",
-    a: "Clawbrowser will output [clawbrowser] Error: proxy connection failed on startup and exit without enabling the CDP endpoint. Run clawbrowser --fingerprint=<id> --regenerate to get fresh proxy credentials while keeping your existing browser state (cookies, localStorage).",
+    a: "The launcher exits non-zero if the browser does not expose a ready CDP endpoint. For fingerprint-backed sessions, clawbrowser rotate --session <name> restarts the session and passes --regenerate to the browser. If you need country, city, or connection-type targeting, pass browser flags after -- when starting the session.",
   },
   {
     q: "Can I run multiple browser sessions simultaneously?",
-    a: "Yes. Launch separate Clawbrowser instances with different fingerprint profile IDs and different --remote-debugging-port values (e.g., 9222, 9223, 9224). Each instance is fully isolated with its own fingerprint, proxy, cookies, and browser history.",
+    a: "Yes. Launch separate managed sessions with different session names and ports, for example: clawbrowser start --session agent-us --port 9222 -- https://example.com and clawbrowser start --session agent-de --port 9223 -- https://example.com. Each session has its own CDP endpoint. For identity separation, use distinct fingerprint IDs after --.",
   },
   {
     q: "Is the CDP endpoint compatible with headless mode?",
-    a: "Yes. Pass --headless to run without a display. On VPS or CI environments, use the Docker image which is configured for headless operation by default.",
+    a: "Yes. For VPS, CI, or no-display environments, use the Docker-backed launcher/container image: docker.io/clawbrowser/clawbrowser:latest. Browser flags can still be passed after -- when needed.",
   },
   {
     q: "Where can I find the latest release and changelog?",
-    a: "All releases are published on GitHub: github.com/clawbrowser/clawbrowser/releases. The install script always pulls the latest stable release.",
+    a: "Releases are published on GitHub: github.com/clawbrowser/clawbrowser/releases. By default, the install script installs the current stable release.",
   },
 ];
 
