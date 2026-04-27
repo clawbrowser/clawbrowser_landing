@@ -33,9 +33,13 @@ Your article content starts here...
 | `title` | Yes | Shown as page heading and card title |
 | `excerpt` | Yes | Shown on blog index card. 1–2 sentences. |
 | `date` | Yes | Format: `YYYY-MM-DD` |
-| `author` | Yes | Your name or team name |
+| `author` | Yes | Your name or team name (fallback if no authorName) |
 | `tags` | No | List of topics. Used for filtering. |
 | `coverImage` | No | Path to cover image. Falls back to auto icon if omitted. |
+| `authorName` | No | Full name shown on the article page |
+| `authorRole` | No | Job title shown under the name |
+| `authorGithub` | No | Full URL to GitHub profile |
+| `authorTwitter` | No | Full URL to X / Twitter profile |
 
 ---
 
@@ -167,11 +171,43 @@ Supported languages: `bash`, `python`, `javascript`, `typescript`, `json`, `sql`
 
 ### Images inside the article
 
+**Single image (one version for all themes):**
+
 ```markdown
 ![Description of image](/blog/my-image.png)
 ```
 
 The file must be placed in `web/public/blog/`.
+
+---
+
+**Image with separate light and dark versions:**
+
+If you have two versions of an image (one for light theme, one for dark), use this instead:
+
+```html
+<!-- themed-image light="/blog/my-image-light.png" dark="/blog/my-image-dark.png" alt="Description of image" -->
+```
+
+Place both files in `web/public/blog/`:
+```
+web/public/blog/my-image-light.png   ← shown in light theme
+web/public/blog/my-image-dark.png    ← shown in dark theme
+```
+
+The image switches automatically when the reader toggles the theme. The `alt` field is required for SEO.
+
+---
+
+### CTA block
+
+Insert a call-to-action banner anywhere in the article body:
+
+```html
+<!-- CTA -->
+```
+
+Typically placed after the first or second section — before the reader loses interest. Can be used multiple times.
 
 ---
 
@@ -199,6 +235,10 @@ title: "How We Cut Browser Memory Usage by 10x"
 excerpt: "We went from 30GB RAM for 100 sessions to under 3GB. Here's exactly how."
 date: "2025-06-01"
 author: "Clawbrowser Team"
+authorName: "Alex Kim"
+authorRole: "Software Engineer"
+authorGithub: "https://github.com/alexkim"
+authorTwitter: "https://x.com/alexkim"
 tags: ["performance", "architecture"]
 coverImage: "/blog/memory-cover.jpg"
 ---
@@ -214,6 +254,8 @@ We profiled our early architecture and found this:
 | 10       | 2 GB        | 400 MB       |
 | 100      | 28 GB       | 2.8 GB       |
 
+<!-- CTA -->
+
 ## What we changed
 
 Instead of one process per session, we share browser processes across isolated contexts.
@@ -222,7 +264,7 @@ Instead of one process per session, we share browser processes across isolated c
 claw session start --profile user-42
 ```
 
-![Architecture diagram](/blog/pool-architecture.png)
+<!-- themed-image light="/blog/pool-architecture-light.png" dark="/blog/pool-architecture-dark.png" alt="Architecture diagram" -->
 
 ## Result
 
@@ -235,9 +277,12 @@ claw session start --profile user-42
 
 - [ ] Frontmatter has `title`, `excerpt`, `date`, `author`
 - [ ] Date is in `YYYY-MM-DD` format
-- [ ] Filename uses dashes only, ends in `.md`
+- [ ] Filename uses dashes and lowercase only, ends in `.md`
 - [ ] If using a cover image — file is in `web/public/blog/` and path starts with `/blog/`
 - [ ] Images inside the article are also in `web/public/blog/`
+- [ ] Themed images have both `light` and `dark` files uploaded
+- [ ] All `alt` attributes filled in (required for SEO)
+- [ ] `<!-- CTA -->` placed at least once in longer articles
 
 ---
 
