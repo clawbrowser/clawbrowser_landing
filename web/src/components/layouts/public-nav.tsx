@@ -88,10 +88,13 @@ export function PublicNav() {
           {/* Right side */}
           <div className="flex items-center gap-2">
             <ThemeToggle />
-            {/* Desktop: Log in + Sign up */}
-            <Button variant="ghost" size="sm" href={APP_LOGIN_URL} className="hidden md:inline-flex">
+            {/* Desktop only: Log in */}
+            <a
+              href={APP_LOGIN_URL}
+              className="hidden md:inline-flex h-8 items-center px-3 text-sm font-medium text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+            >
               Log in
-            </Button>
+            </a>
             <Button size="sm" href={APP_LOGIN_URL}>Sign up</Button>
             {/* Mobile: hamburger */}
             <button
