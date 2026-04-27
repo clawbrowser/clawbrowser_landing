@@ -124,10 +124,15 @@ If the question is vague, ask one clarifying question.
 Never invent features, commands, or behaviors not described above.`
 );
 
+// ChatGPT has a short URL limit — use a focused question instead of the full system prompt
+const chatgptPrompt = encodeURIComponent(
+  "What is Clawbrowser (clawbrowser.ai)? It's a Chromium fork with built-in browser fingerprint management and residential/datacenter proxy routing for AI agent automation. Explain how it works and how to integrate it with Playwright or Puppeteer."
+);
+
 const links = [
   {
     name: "ChatGPT",
-    href: `https://chatgpt.com/?q=${prompt}`,
+    href: `https://chatgpt.com/?q=${chatgptPrompt}`,
     icon: (
       <svg width="20" height="20" viewBox="0 0 41 41" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <path
