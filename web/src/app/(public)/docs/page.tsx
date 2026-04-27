@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
 import { PromptBlock } from "@/components/docs/prompt-block";
+import { TechDocJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
   title: "Documentation",
@@ -143,6 +144,11 @@ const errors = `[clawbrowser] ERROR: API key cannot be empty.
 export default function DocsPage() {
   return (
     <div className="mx-auto flex max-w-5xl gap-12 px-6 py-16">
+      <TechDocJsonLd
+        name="Clawbrowser Documentation"
+        description="Complete documentation for Clawbrowser: installation, CLI usage, fingerprint profiles, proxy setup, and AI agent integration with Playwright and Puppeteer."
+        url="https://clawbrowser.ai/docs"
+      />
       {/* Sidebar */}
       <aside className="hidden w-48 shrink-0 lg:block">
         <nav className="sticky top-8 flex flex-col gap-2">

@@ -5,6 +5,7 @@ const basePath = process.env.NEXT_BASE_PATH ?? "";
 
 const nextConfig: NextConfig = {
   output: "export",
+  trailingSlash: true,
   basePath: isProd ? basePath : "",
   images: {
     unoptimized: true,

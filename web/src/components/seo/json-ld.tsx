@@ -58,6 +58,54 @@ export function BlogPostingJsonLd({
   );
 }
 
+export function CollectionPageJsonLd({ name, description, url }: { name: string; description: string; url: string }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name,
+          description,
+          url,
+          publisher: {
+            "@type": "Organization",
+            name: "Clawbrowser",
+            url: "https://clawbrowser.ai",
+          },
+        }),
+      }}
+    />
+  );
+}
+
+export function TechDocJsonLd({ name, description, url }: { name: string; description: string; url: string }) {
+  return (
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "TechArticle",
+          name,
+          headline: name,
+          description,
+          url,
+          author: { "@type": "Organization", name: "Clawbrowser" },
+          publisher: {
+            "@type": "Organization",
+            name: "Clawbrowser",
+            url: "https://clawbrowser.ai",
+            logo: { "@type": "ImageObject", url: "https://clawbrowser.ai/side-bite.svg" },
+          },
+          mainEntityOfPage: { "@type": "WebPage", "@id": url },
+        }),
+      }}
+    />
+  );
+}
+
 export function BreadcrumbJsonLd({ crumbs }: { crumbs: { name: string; url: string }[] }) {
   return (
     <script
