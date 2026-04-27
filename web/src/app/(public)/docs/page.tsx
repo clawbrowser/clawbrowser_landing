@@ -6,7 +6,7 @@ import { PromptBlock } from "@/components/docs/prompt-block";
 export const metadata: Metadata = {
   title: "Documentation",
   description:
-    "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, proxy setup, and AI agent integration with Playwright and Puppeteer.",
+    "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, residential/datacenter proxy setup, and AI agent integration with Playwright and Puppeteer.",
   alternates: { canonical: "https://clawbrowser.ai/docs" },
 };
 
@@ -109,8 +109,9 @@ clawbrowser list --session work
 # Choose a CDP port
 clawbrowser start --session work --port 9222 -- https://example.com
 
-# Pass browser-level fingerprint and geo flags
+# Pass browser-level fingerprint, proxy type, and geo flags
 clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential
+clawbrowser start --session dc -- --fingerprint=fp_dc --country=US --connection-type=datacenter
 
 # Keep the internal verification page enabled
 clawbrowser start --session work --verify -- https://example.com`;
@@ -164,7 +165,7 @@ export default function DocsPage() {
           Documentation
         </h1>
         <p className="mt-3 text-lg text-zinc-600">
-          AI agent integration guide — managed sessions, fingerprint profiles, and proxy routing
+          AI agent integration guide — managed sessions, fingerprint profiles, and residential/datacenter proxy routing
           over standard CDP.
         </p>
 
@@ -181,8 +182,10 @@ export default function DocsPage() {
         <H2 id="agent-integration">Agent Integration</H2>
         <P>
           Connect your automation framework to the CDP endpoint the same way you
-          would with any Chromium build. Fingerprint spoofing and proxy routing
-          are transparent to your agent.
+          would with any Chromium build. Fingerprint spoofing and
+          residential/datacenter proxy routing are transparent to your agent,
+          reducing CAPTCHA and anti-bot interruptions caused by mismatched
+          browser identity signals.
         </P>
         <H3>Playwright (Python)</H3>
         <CodeBlock code={playwrightPython} />
@@ -240,7 +243,13 @@ export default function DocsPage() {
           </li>
           <li>
             <strong className="text-zinc-950">One proxy per session</strong>{" "}
-            — for proxy-backed profiles, the proxy does not rotate mid-session.
+            — for residential/datacenter proxy-backed profiles, the proxy does
+            not rotate mid-session.
+          </li>
+          <li>
+            Clawbrowser reduces CAPTCHA and anti-bot challenges caused by
+            inconsistent browser/proxy identity signals, but it should not be
+            described as a universal CAPTCHA bypass.
           </li>
           <li>
             <strong className="text-zinc-950">

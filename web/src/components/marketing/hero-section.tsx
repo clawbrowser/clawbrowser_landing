@@ -98,7 +98,9 @@ export function HeroSection() {
 
         <p className="mx-auto max-w-2xl text-lg leading-relaxed text-zinc-500 dark:text-zinc-400 md:text-xl">
           Clawbrowser is a Chromium fork with built-in fingerprint management
-          and profile-bound proxy routing for CDP automation.
+          and profile-bound residential/datacenter proxy routing, built to
+          reduce CAPTCHA and anti-bot interruptions caused by mismatched browser
+          identity signals.
         </p>
 
         {/* Pre-built prompt block */}

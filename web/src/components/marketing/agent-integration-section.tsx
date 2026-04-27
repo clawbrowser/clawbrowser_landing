@@ -101,7 +101,7 @@ export function AgentIntegrationSection() {
               clawbrowser endpoint --session &lt;name&gt;
             </code>
             . Attach the same way you would to any Chromium build. Spoofing and
-            proxying are invisible to your automation.
+            residential/datacenter proxying are invisible to your automation.
           </p>
         </div>
 

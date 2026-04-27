@@ -2,9 +2,11 @@
 
 ## Overview
 
-Clawbrowser.ai is a Chromium-based browser for managed sessions, browser fingerprint profiles, and profile-bound proxy routing. AI agents connect through standard CDP (Chrome DevTools Protocol) using Playwright, Puppeteer, or another CDP client.
+Clawbrowser.ai is a Chromium-based browser for managed sessions, browser fingerprint profiles, and profile-bound residential/datacenter proxy routing. AI agents connect through standard CDP (Chrome DevTools Protocol) using Playwright, Puppeteer, or another CDP client.
 
 The current public launcher manages named sessions. Browser-level fingerprint and geo flags still pass through after `--` when an identity-sensitive workflow needs them.
+
+Clawbrowser is designed to reduce CAPTCHA and anti-bot interruptions caused by mismatched browser fingerprint, proxy, locale, timezone, and geo signals. Do not describe it as a universal CAPTCHA bypass.
 
 ## Quick Start
 
@@ -48,7 +50,7 @@ clawbrowser endpoint --session work
 clawbrowser start --session identity -- --fingerprint=fp_work --country=US https://example.com
 ```
 
-On first use of a fingerprint ID, the browser calls the backend API, saves the generated profile locally, and reuses it on later starts. For proxy-backed profiles, proxy credentials are part of the generated profile.
+On first use of a fingerprint ID, the browser calls the backend API, saves the generated profile locally, and reuses it on later starts. Generated profiles can include residential or datacenter proxy credentials as part of the profile.
 
 ### 4. Connect your agent
 
@@ -114,6 +116,7 @@ clawbrowser start --session work --port 9222 -- https://example.com
 
 # Pass browser-level fingerprint and geo flags
 clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential https://example.com
+clawbrowser start --session dc -- --fingerprint=fp_dc --country=US --connection-type=datacenter https://example.com
 
 # Keep the internal verification page enabled
 clawbrowser start --session work --verify -- https://example.com
@@ -160,7 +163,8 @@ clawbrowser start --session agent-uk --port 9224 -- https://example.com
 - Use `clawbrowser endpoint --session <name>` to reconnect to a running session.
 - The launcher skips the verification page by default for faster startup. Pass `--verify` when you need to inspect it.
 - For fingerprint-backed sessions, `clawbrowser rotate --session <name>` passes `--regenerate` to the browser.
-- One proxy identity is used per browser session; proxy routing does not rotate mid-session.
+- One residential or datacenter proxy identity is used per browser session; proxy routing does not rotate mid-session.
+- Clawbrowser reduces CAPTCHA and anti-bot checks caused by inconsistent identity signals, but it is not a universal CAPTCHA bypass.
 - Do not override fingerprint properties via CDP. Browser-level fingerprint patches and CDP-level overrides can conflict.
 
 ## Error Handling

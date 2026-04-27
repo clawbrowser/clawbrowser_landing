@@ -11,7 +11,7 @@ You are an AI agent. Your task is to install and configure Clawbrowser on the ta
 ## What is Clawbrowser?
 Clawbrowser is a Chromium-based browser built for automation that provides:
 - Managed browser sessions with reusable browser state
-- Browser fingerprint profiles with profile-bound proxy routing
+- Browser fingerprint profiles with profile-bound residential/datacenter proxy routing
 - Standard Chrome DevTools Protocol (CDP) interface
 
 ## Prerequisites

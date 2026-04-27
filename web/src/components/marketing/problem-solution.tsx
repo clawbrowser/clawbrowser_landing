@@ -3,13 +3,13 @@ const audiences = [
     label: "AI agents",
     title: "AI agents",
     description:
-      "Automate with standard CDP. Playwright, Puppeteer, and other DevTools clients attach to a real browser session while fingerprints and proxy routing stay inside the browser.",
+      "Automate with standard CDP. Playwright, Puppeteer, and other DevTools clients attach to a real browser session while fingerprints, proxy routing, and CAPTCHA-reducing identity consistency stay inside the browser.",
   },
   {
     label: "Multi-account",
     title: "Multi-account operators",
     description:
-      "Use separate session names and fingerprint IDs to keep endpoints, cookies, storage, generated fingerprint data, and proxy-backed identities organized.",
+      "Use separate session names and fingerprint IDs to keep endpoints, cookies, storage, generated fingerprint data, and residential/datacenter proxy identities organized.",
   },
 ];
 

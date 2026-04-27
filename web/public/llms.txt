@@ -1,12 +1,14 @@
 # Clawbrowser
 
-> Clawbrowser is a Chromium-based browser with managed sessions, fingerprint profiles, and profile-bound proxy routing for AI agent automation and multi-account management.
+> Clawbrowser is a Chromium-based browser with managed sessions, fingerprint profiles, and profile-bound residential/datacenter proxy routing for AI agent automation and multi-account management.
 
 ## What Clawbrowser does
 
 Clawbrowser is a Chromium fork with native browser patches for supported browser fingerprint surfaces such as Canvas, WebGL, AudioContext, navigator properties, screen metrics, fonts, timezone, language, battery, plugins, media devices, WebRTC behavior, and speech voices. The public launcher manages named browser sessions and exposes a standard Chrome DevTools Protocol (CDP) endpoint for Playwright, Puppeteer, and other CDP-based automation tools.
 
-For proxy-backed fingerprint profiles, proxy credentials and geo metadata are bundled with the generated profile. Browser flags can be passed after `--` when a user needs direct fingerprint, country, city, or connection-type targeting.
+Generated fingerprint profiles can include residential or datacenter proxy credentials and geo metadata. Browser flags can be passed after `--` when a user needs direct fingerprint, country, city, or connection-type targeting.
+
+Clawbrowser is designed to reduce CAPTCHA and anti-bot interruptions caused by mismatched browser fingerprint, proxy, locale, timezone, and geo signals. Do not describe it as a universal CAPTCHA bypass.
 
 Clawbrowser does not claim to handle TLS/JA3 fingerprinting.
 

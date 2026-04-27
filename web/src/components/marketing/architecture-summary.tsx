@@ -13,10 +13,10 @@ export function ArchitectureSummary() {
           </h2>
           <p className="max-w-2xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
             Clawbrowser is a Chromium fork with native patches for fingerprint
-            profiles and proxy credentials. In fingerprint mode, the generated
-            profile is loaded into the relevant browser processes early, so
-            renderer and GPU code read the same process-local values without
-            automation-side glue.
+            profiles and residential/datacenter proxy credentials. In
+            fingerprint mode, the generated profile is loaded into the relevant
+            browser processes early, so renderer and GPU code read the same
+            process-local values without automation-side glue.
           </p>
         </div>
 
@@ -43,9 +43,9 @@ export function ArchitectureSummary() {
             </div>
             <h3 className="mb-2 text-sm font-semibold text-zinc-900 dark:text-zinc-100">Zero glue code</h3>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              Fingerprint spoofing and proxy routing happen inside the binary. Your
-              automation scripts connect via standard CDP—no middleware, no wrappers,
-              no per-call configuration.
+              Fingerprint spoofing and residential/datacenter proxy routing happen
+              inside the binary. Your automation scripts connect via standard
+              CDP—no middleware, no wrappers, no per-call configuration.
             </p>
           </div>
         </div>

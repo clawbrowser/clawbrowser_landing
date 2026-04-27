@@ -4,18 +4,18 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "FAQ",
-  description: "Answers to common questions about Clawbrowser: installation, fingerprint profiles, proxy setup, API keys, and AI agent integration.",
+  description: "Answers to common questions about Clawbrowser: installation, fingerprint profiles, residential/datacenter proxy setup, API keys, and AI agent integration.",
   alternates: { canonical: "https://clawbrowser.ai/faq" },
 };
 
 const faqs = [
   {
     q: "What is Clawbrowser?",
-    a: "Clawbrowser is a Chromium fork with native patches for browser fingerprint profiles and profile-bound proxy routing. It exposes a standard Chrome DevTools Protocol (CDP) endpoint, making it compatible with Playwright, Puppeteer, and CDP-based automation tools.",
+    a: "Clawbrowser is a Chromium fork with native patches for browser fingerprint profiles and profile-bound residential/datacenter proxy routing. It exposes a standard Chrome DevTools Protocol (CDP) endpoint, making it compatible with Playwright, Puppeteer, and CDP-based automation tools.",
   },
   {
     q: "How is Clawbrowser different from regular Chromium or other browser-profile tools?",
-    a: "Unlike regular Chromium, Clawbrowser changes fingerprint behavior inside the browser engine instead of relying on page-level JavaScript injection. Compared to traditional profile browsers, the public launcher is built for automation: it manages named sessions, prints a local CDP endpoint, and keeps proxy credentials tied to the generated profile.",
+    a: "Unlike regular Chromium, Clawbrowser changes fingerprint behavior inside the browser engine instead of relying on page-level JavaScript injection. Compared to traditional profile browsers, the public launcher is built for automation: it manages named sessions, prints a local CDP endpoint, and keeps residential/datacenter proxy credentials tied to the generated profile.",
   },
   {
     q: "What fingerprint surfaces does Clawbrowser spoof?",
@@ -23,7 +23,11 @@ const faqs = [
   },
   {
     q: "Do I need to configure proxies separately?",
-    a: "Normally, no for proxy-backed profiles. Proxy credentials are bundled with the generated fingerprint profile via the Clawbrowser API. The browser reuses the cached fingerprint profile until that profile is regenerated.",
+    a: "Normally, no for proxy-backed profiles. Residential or datacenter proxy credentials are bundled with the generated fingerprint profile via the Clawbrowser API. The browser reuses the cached fingerprint profile until that profile is regenerated.",
+  },
+  {
+    q: "Does Clawbrowser bypass CAPTCHAs?",
+    a: "Clawbrowser is designed to reduce CAPTCHA and anti-bot interruptions caused by mismatched browser fingerprint, proxy, locale, timezone, and geo signals. Generated profiles keep those signals aligned with residential or datacenter proxy routing, but no browser can honestly guarantee a universal CAPTCHA bypass across every website.",
   },
   {
     q: "How do I get an API key?",

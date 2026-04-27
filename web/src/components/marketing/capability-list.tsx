@@ -25,7 +25,8 @@ export function CapabilityList() {
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
               Profiles are generated to match real-world combinations. Platform,
               fonts, timezone, and proxy geography line up when those values are
-              present, so you are not advertising contradictory signals.
+              present, reducing the contradictory signals that trigger avoidable
+              CAPTCHA and anti-bot checks.
             </p>
           </div>
           <ul className="space-y-3">

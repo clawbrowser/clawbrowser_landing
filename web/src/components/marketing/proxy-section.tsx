@@ -1,14 +1,14 @@
 const proxyItems = [
   {
-    text: "For proxy-backed profiles, proxy credentials and geo metadata come from the generated profile.",
+    text: "Generated profiles can include residential or datacenter proxy credentials with geo metadata.",
   },
   {
-    text: "One proxy identity per browser session; no mid-session rotation inside a single run.",
+    text: "One residential or datacenter proxy identity per browser session; no mid-session rotation inside a single run.",
   },
   {
     code: "clawbrowser rotate --session <name>",
     prefix: "To restart a managed session with",
-    suffix: "use rotate; sessions started with fingerprint flags will pass --regenerate to the browser.",
+    suffix: "use rotate; fingerprint-backed sessions pass --regenerate to the browser.",
   },
 ];
 
@@ -20,12 +20,13 @@ export function ProxySection() {
           <div className="space-y-5">
             <p className="text-sm font-medium text-cyan-600">Proxy routing</p>
             <h2 id="proxy-heading" className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50" style={{ letterSpacing: "-0.5px" }}>
-              Proxy routing from the fingerprint profile
+              Residential and datacenter proxy routing
             </h2>
             <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-              When a generated fingerprint profile includes proxy credentials,
-              Clawbrowser uses that profile-bound proxy configuration for the
-              browser session.
+              When a generated fingerprint profile includes residential or
+              datacenter proxy credentials, Clawbrowser uses that profile-bound
+              proxy configuration for the browser session so network identity,
+              fingerprint data, and geo signals stay aligned.
             </p>
           </div>
           <ul className="space-y-3">

@@ -32,7 +32,8 @@ const lines = [
   { type: "cmd", text: "clawbrowser stop --session work" },
   { type: "cmd", text: "clawbrowser list --session work" },
   { type: "gap" },
-  { type: "cmd", text: "clawbrowser start --session us -- --fingerprint=fp_us --country=US" },
+  { type: "cmd", text: "clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential" },
+  { type: "cmd", text: "clawbrowser start --session dc -- --fingerprint=fp_dc --country=US --connection-type=datacenter" },
 ];
 
 export function CliSection() {
