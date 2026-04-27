@@ -10,7 +10,7 @@ import { ProxySection } from "@/components/marketing/proxy-section";
 import { WebsiteJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
-  title: "Clawbrowser — Browser built for AI agents",
+  title: { absolute: "Clawbrowser — Browser built for AI agents" },
   description: "Chromium fork with managed browser sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agents. Works with Playwright, Puppeteer, and any CDP tool.",
   alternates: { canonical: "https://clawbrowser.ai" },
 };

@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   },
   description:
     "Chromium-based browser with managed sessions, fingerprint profiles, and residential/datacenter proxy routing for AI automation and multi-account use.",
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    shortcut: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
