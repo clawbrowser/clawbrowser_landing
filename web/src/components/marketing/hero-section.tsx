@@ -1,7 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+
+const VERSION = "1.0.0";
+const BASE = `https://github.com/clawbrowser/clawbrowser/releases/download/${VERSION}`;
+
+const ASSETS = {
+  "macos-arm64": { url: `${BASE}/clawbrowser-macos-arm64.tar.gz`, label: "macOS (Apple Silicon)", os: "macOS" },
+  "linux-x64":   { url: `${BASE}/clawbrowser-linux-x64.tar.gz`,   label: "Linux (x64)",          os: "Linux" },
+  "linux-arm64": { url: `${BASE}/clawbrowser-linux-arm64.tar.gz`, label: "Linux (arm64)",         os: "Linux" },
+} as const;
+
+type AssetKey = keyof typeof ASSETS;
+
+function detectAsset(): AssetKey | null {
+  if (typeof navigator === "undefined") return null;
+  const ua = navigator.userAgent;
+  const plat = navigator.platform ?? "";
+  const isMac = /Mac/.test(plat) || /Macintosh/.test(ua);
+  const isLinux = /Linux/.test(plat) || (/Linux/.test(ua) && !/Android/.test(ua));
+  const isArm = /arm|aarch64/i.test(ua);
+  if (isMac) return "macos-arm64";
+  if (isLinux && isArm) return "linux-arm64";
+  if (isLinux) return "linux-x64";
+  return null; // Windows / unknown
+}
+
+function DownloadButton() {
+  const [asset, setAsset] = useState<AssetKey | null>(null);
+  useEffect(() => { setAsset(detectAsset()); }, []);
+
+  const info = asset ? ASSETS[asset] : null;
+
+  if (!info) {
+    // Windows or unknown — link to releases page
+    return (
+      <a
+        href="https://github.com/clawbrowser/clawbrowser/releases/latest"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50"
+      >
+        <DownloadIcon />
+        Download
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={info.url}
+      download
+      className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50"
+    >
+      <DownloadIcon />
+      Download for {info.label}
+    </a>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+    </svg>
+  );
+}
 
 const agentPrompt = `Install Clawbrowser automatically.
 
@@ -125,6 +190,11 @@ export function HeroSection() {
               <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Pre-built prompt</p>
             </div>
           </div>
+
+          {/* Smart download button — detects OS, starts download immediately */}
+          <div className="mt-3 flex justify-center">
+            <DownloadButton />
+          </div>
         </div>
 
         <p className="text-sm text-zinc-400 dark:text-zinc-500">
@@ -133,7 +203,6 @@ export function HeroSection() {
 
         <div className="flex flex-wrap items-center justify-center gap-3">
           <Button size="lg" variant="outline" href="/docs">Documentation</Button>
-          <Button size="lg" variant="outline" href="https://github.com/clawbrowser/clawbrowser/releases">Download</Button>
           <a
             href="https://github.com/clawbrowser/clawbrowser"
             target="_blank"

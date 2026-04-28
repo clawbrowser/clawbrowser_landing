@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { CodeBlock } from "@/components/docs/code-block";
 import { PromptBlock } from "@/components/docs/prompt-block";
+import { QuickStartTabs } from "@/components/docs/quick-start-tabs";
 import { TechDocJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
@@ -156,6 +157,7 @@ export default function DocsPage() {
             On this page
           </span>
           <NavLink href="#quick-start">Quick Start</NavLink>
+          <NavLink href="#quick-start-manual">Manual Install</NavLink>
           <NavLink href="#agent-integration">Agent Integration</NavLink>
           <NavLink href="#cli">CLI Reference</NavLink>
           <NavLink href="#output-modes">Launcher Output</NavLink>
@@ -176,12 +178,17 @@ export default function DocsPage() {
         </p>
 
         <H2 id="quick-start">Quick Start</H2>
+        <P>
+          Select your AI agent below. The install script configures Clawbrowser
+          and wires it into your agent automatically.
+        </P>
+        <QuickStartTabs />
+
+        <H2 id="quick-start-manual">Manual Quick Start</H2>
         <PromptBlock />
         <P>
-          Let the launcher prompt once and save the key to browser-managed
-          config, or use a temporary API key environment variable for
-          non-interactive automation. Start a named session, then use
-          fingerprint flags after <Inline>--</Inline> when identity matters.
+          Or set the API key and start a session directly from the terminal.
+          Use fingerprint flags after <Inline>--</Inline> when identity matters.
         </P>
         <CodeBlock code={quickStart} />
 
