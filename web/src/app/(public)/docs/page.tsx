@@ -14,10 +14,7 @@ export const metadata: Metadata = {
 
 function H2({ id, children }: { id: string; children: React.ReactNode }) {
   return (
-    <h2
-      id={id}
-      className="mt-12 scroll-mt-20 text-2xl font-bold text-zinc-950"
-    >
+    <h2 id={id} className="mt-12 scroll-mt-20 text-2xl font-bold text-zinc-950 dark:text-zinc-50">
       {children}
     </h2>
   );
@@ -25,7 +22,7 @@ function H2({ id, children }: { id: string; children: React.ReactNode }) {
 
 function H3({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className="mt-6 text-lg font-semibold text-zinc-950">
+    <h3 className="mt-6 text-lg font-semibold text-zinc-950 dark:text-zinc-50">
       {children}
     </h3>
   );
@@ -33,13 +30,13 @@ function H3({ children }: { children: React.ReactNode }) {
 
 function P({ children }: { children: React.ReactNode }) {
   return (
-    <p className="mt-3 text-zinc-600">{children}</p>
+    <p className="mt-3 text-zinc-600 dark:text-zinc-400">{children}</p>
   );
 }
 
 function Inline({ children }: { children: React.ReactNode }) {
   return (
-    <code className="rounded bg-zinc-200 px-1 py-0.5 text-sm text-zinc-800">
+    <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 py-0.5 text-sm text-zinc-800 dark:text-zinc-200">
       {children}
     </code>
   );
@@ -49,7 +46,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <a
       href={href}
-      className="block text-sm text-zinc-600 underline-offset-2 transition-colors hover:text-zinc-950 hover:underline"
+      className="block text-sm text-zinc-500 dark:text-zinc-400 underline-offset-2 transition-colors hover:text-zinc-950 dark:hover:text-zinc-50 hover:underline"
     >
       {children}
     </a>
@@ -169,10 +166,10 @@ export default function DocsPage() {
 
       {/* Content */}
       <main className="min-w-0 flex-1">
-        <h1 className="text-4xl font-bold text-zinc-950">
+        <h1 className="text-4xl font-bold text-zinc-950 dark:text-zinc-50">
           Documentation
         </h1>
-        <p className="mt-3 text-lg text-zinc-600">
+        <p className="mt-3 text-lg text-zinc-600 dark:text-zinc-400">
           AI agent integration guide — managed sessions, fingerprint profiles, and residential/datacenter proxy routing
           over standard CDP.
         </p>
@@ -240,7 +237,7 @@ export default function DocsPage() {
         <CodeBlock code={multiProfile} />
 
         <H2 id="tips">Tips for AI Agents</H2>
-        <ul className="mt-4 list-disc space-y-2 pl-6 text-zinc-600">
+        <ul className="mt-4 list-disc space-y-2 pl-6 text-zinc-600 dark:text-zinc-400">
           <li>
             <strong className="text-zinc-950">Reuse sessions and profile IDs</strong>{" "}
             for continuity. When using fingerprint mode, the same fingerprint ID
@@ -289,7 +286,7 @@ export default function DocsPage() {
         <div className="mt-12 border-t border-zinc-200 pt-8">
           <Link
             href="/"
-            className="text-sm font-medium text-zinc-950 underline"
+            className="text-sm font-medium text-zinc-950 dark:text-zinc-50 underline"
           >
             ← Back to home
           </Link>

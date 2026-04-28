@@ -180,15 +180,15 @@ export function QuickStartTabs() {
   return (
     <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
       {/* Tabs */}
-      <div className="flex border-b border-zinc-200 dark:border-zinc-800 overflow-x-auto">
+      <div className="flex flex-wrap gap-1 border-b border-zinc-200 dark:border-zinc-800 px-3 pt-3 pb-0">
         {AGENTS.map((a) => (
           <button
             key={a.id}
             onClick={() => setActive(a.id)}
-            className={`flex shrink-0 items-center gap-2 px-4 py-3 text-sm font-medium transition-colors border-b-2 -mb-px ${
+            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
               active === a.id
-                ? "border-zinc-950 dark:border-zinc-50 text-zinc-950 dark:text-zinc-50"
-                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300"
+                ? "border-zinc-950 dark:border-zinc-50 bg-zinc-950 dark:bg-zinc-50 text-white dark:text-zinc-950"
+                : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
             }`}
           >
             {a.icon}
