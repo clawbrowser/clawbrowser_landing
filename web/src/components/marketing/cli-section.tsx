@@ -77,7 +77,7 @@ export function CliSection() {
             <button
               type="button"
               onClick={copy}
-              className="flex items-center gap-1.5 rounded-md bg-zinc-200 dark:bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700 hover:text-zinc-950 dark:hover:text-zinc-100"
+              className="flex cursor-pointer items-center gap-1.5 rounded-md bg-zinc-200 dark:bg-zinc-800 px-2 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300 transition-colors hover:bg-zinc-300 dark:hover:bg-zinc-700 hover:text-zinc-950 dark:hover:text-zinc-100"
             >
               <CopyIcon />
               {copied ? "Copied!" : "Copy"}

@@ -11,11 +11,7 @@ import { APP_LOGIN_URL } from "@/lib/links";
 const navLink =
   "text-sm text-zinc-500 dark:text-zinc-400 transition-colors hover:text-zinc-900 dark:hover:text-zinc-100 cursor-pointer";
 
-const sections = [
-  { label: "Capabilities", hash: "capabilities" },
-  { label: "CLI", hash: "cli" },
-  { label: "Agents", hash: "agents" },
-];
+const sections: { label: string; hash: string }[] = [];
 
 function NavAnchor({
   hash,
@@ -100,7 +96,7 @@ export function PublicNav() {
             <button
               onClick={() => setOpen((v) => !v)}
               aria-label="Toggle menu"
-              className="flex md:hidden h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
+              className="flex cursor-pointer md:hidden h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
             >
               {open ? (
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">

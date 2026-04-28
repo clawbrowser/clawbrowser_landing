@@ -42,7 +42,7 @@ export function CodeBlock({ code }: { code: string }) {
         <button
           type="button"
           onClick={copy}
-          className="flex items-center gap-1.5 rounded-md bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-300 hover:text-zinc-950"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md bg-zinc-200 px-2 py-1 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-300 hover:text-zinc-950"
         >
           <CopyIcon />
           {copied ? "Copied!" : "Copy"}

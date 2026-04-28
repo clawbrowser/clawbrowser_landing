@@ -85,7 +85,7 @@ export function PromptBlock() {
         <button
           type="button"
           onClick={copy}
-          className="flex items-center gap-1.5 rounded-md bg-cyan-600 dark:bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-cyan-700 dark:hover:bg-cyan-400 active:bg-cyan-800"
+          className="flex cursor-pointer items-center gap-1.5 rounded-md bg-cyan-600 dark:bg-cyan-500 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-cyan-700 dark:hover:bg-cyan-400 active:bg-cyan-800"
         >
           <CopyIcon />
           {copied ? "Copied!" : "Copy prompt"}

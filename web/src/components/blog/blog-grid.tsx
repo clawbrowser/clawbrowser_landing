@@ -125,7 +125,7 @@ export function BlogGrid({ posts: allPosts }: { posts: PostMeta[] }) {
             <button
               onClick={() => goTo(page - 1)}
               disabled={page === 1}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <ChevronLeft />
               Prev
@@ -136,7 +136,7 @@ export function BlogGrid({ posts: allPosts }: { posts: PostMeta[] }) {
                 <button
                   key={p}
                   onClick={() => goTo(p)}
-                  className={`h-9 w-9 rounded-lg text-sm font-medium transition-colors ${
+                  className={`cursor-pointer h-9 w-9 rounded-lg text-sm font-medium transition-colors ${
                     p === page
                       ? "bg-zinc-950 text-white"
                       : "border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50"
@@ -150,7 +150,7 @@ export function BlogGrid({ posts: allPosts }: { posts: PostMeta[] }) {
             <button
               onClick={() => goTo(page + 1)}
               disabled={page === totalPages}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex cursor-pointer items-center gap-1.5 rounded-lg border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Next
               <ChevronRight />

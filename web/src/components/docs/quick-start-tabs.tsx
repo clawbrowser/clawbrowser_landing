@@ -156,7 +156,7 @@ function CopyButton({ code }: { code: string }) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       }}
-      className="absolute right-3 top-3 flex items-center gap-1.5 rounded-md bg-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
+      className="absolute cursor-pointer right-3 top-3 flex items-center gap-1.5 rounded-md bg-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
     >
       {copied ? (
         <>
