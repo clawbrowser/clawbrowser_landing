@@ -18,26 +18,22 @@ const AGENTS = [
     note: "Works with Claude Code and Claude Desktop",
     steps: [
       {
-        title: "Get your API key",
-        body: (
-          <span>
-            Sign up at{" "}
-            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
-              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
-              app.clawbrowser.ai
-            </a>{" "}
-            and copy your API key from the dashboard.
-          </span>
-        ),
-      },
-      {
         title: "Run the install script",
         body: "Paste this into your terminal. The script installs Clawbrowser and wires it into Claude Code automatically.",
         code: `${INSTALL_BASE} claude`,
       },
       {
-        title: "Or let Claude do it",
-        body: "Copy the pre-built prompt from the homepage and paste it directly into Claude — it will install and configure everything.",
+        title: "Enter your API key",
+        body: (
+          <span>
+            The script will prompt you for your API key. Get one at{" "}
+            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
+              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
+              app.clawbrowser.ai
+            </a>
+            .
+          </span>
+        ),
       },
     ],
   },
@@ -53,22 +49,22 @@ const AGENTS = [
     note: "Works with OpenAI Codex CLI",
     steps: [
       {
-        title: "Get your API key",
-        body: (
-          <span>
-            Sign up at{" "}
-            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
-              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
-              app.clawbrowser.ai
-            </a>{" "}
-            and copy your API key from the dashboard.
-          </span>
-        ),
-      },
-      {
         title: "Run the install script",
         body: "Installs Clawbrowser and configures the Codex integration.",
         code: `${INSTALL_BASE} codex`,
+      },
+      {
+        title: "Enter your API key",
+        body: (
+          <span>
+            The script will prompt you for your API key. Get one at{" "}
+            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
+              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
+              app.clawbrowser.ai
+            </a>
+            .
+          </span>
+        ),
       },
     ],
   },
@@ -84,22 +80,22 @@ const AGENTS = [
     note: "Works with Google Gemini CLI",
     steps: [
       {
-        title: "Get your API key",
-        body: (
-          <span>
-            Sign up at{" "}
-            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
-              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
-              app.clawbrowser.ai
-            </a>{" "}
-            and copy your API key from the dashboard.
-          </span>
-        ),
-      },
-      {
         title: "Run the install script",
         body: "Installs Clawbrowser and configures the Gemini CLI integration.",
         code: `${INSTALL_BASE} gemini`,
+      },
+      {
+        title: "Enter your API key",
+        body: (
+          <span>
+            The script will prompt you for your API key. Get one at{" "}
+            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
+              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
+              app.clawbrowser.ai
+            </a>
+            .
+          </span>
+        ),
       },
     ],
   },
@@ -115,31 +111,22 @@ const AGENTS = [
     note: "Cursor, Windsurf, and any other agent",
     steps: [
       {
-        title: "Get your API key",
-        body: (
-          <span>
-            Sign up at{" "}
-            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
-              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
-              app.clawbrowser.ai
-            </a>{" "}
-            and copy your API key from the dashboard.
-          </span>
-        ),
-      },
-      {
         title: "Run the install script",
         body: "Installs Clawbrowser and configures integrations for all supported agents at once.",
         code: `${INSTALL_BASE} all`,
       },
       {
-        title: "Set your API key",
+        title: "Enter your API key",
         body: (
           <span>
-            Export the key in your shell or add it to your agent&apos;s environment:
+            The script will prompt you for your API key. Get one at{" "}
+            <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer"
+              className="text-sky-600 dark:text-sky-400 underline underline-offset-2">
+              app.clawbrowser.ai
+            </a>
+            .
           </span>
         ),
-        code: "export CLAWBROWSER_API_KEY=clawbrowser_xxxxx",
       },
     ],
   },
@@ -185,7 +172,7 @@ export function QuickStartTabs() {
           <button
             key={a.id}
             onClick={() => setActive(a.id)}
-            className={`flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
+            className={`cursor-pointer flex items-center gap-2 rounded-t-lg px-4 py-2.5 text-sm font-medium transition-colors -mb-px border-b-2 ${
               active === a.id
                 ? "border-zinc-950 dark:border-zinc-50 bg-zinc-950 dark:bg-zinc-50 text-white dark:text-zinc-950"
                 : "border-transparent text-zinc-500 dark:text-zinc-400 hover:text-zinc-700 dark:hover:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800"
