@@ -11,12 +11,6 @@ tags: ["agents", "infrastructure", "browser-automation"]
 coverImage: "/blog/browser-runtime-ai-agents-cover-light.png"
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/blog/browser-runtime-ai-agents-cover-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="/blog/browser-runtime-ai-agents-cover-light.png">
-  <img src="/blog/browser-runtime-ai-agents-cover-light.png" alt="Diagram showing the browser runtime layer beneath an AI agent stack">
-</picture>
-
 Most AI agent failures on the web are not reasoning failures. They are infrastructure failures. The model picks the right link, fills the right field, plans the right sequence — and then the browser layer underneath collapses on a Cloudflare challenge, a fingerprint mismatch, or a session that silently leaks identity across tasks.
 
 This is the problem the **browser runtime for AI agents** category exists to solve. A browser runtime is the layer underneath your agent framework that handles browser execution, identity consistency, and network egress as one coherent unit — so the agent can reason about *what* to do instead of debugging *whether the browser will be allowed to do it*.
