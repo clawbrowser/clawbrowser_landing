@@ -10,6 +10,20 @@ export const metadata: Metadata = {
   description:
     "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, residential/datacenter proxy setup, and AI agent integration with Playwright and Puppeteer.",
   alternates: { canonical: "https://clawbrowser.ai/docs" },
+  openGraph: {
+    title: "Documentation — Clawbrowser",
+    description: "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, residential/datacenter proxy setup, and AI agent integration.",
+    url: "https://clawbrowser.ai/docs",
+    siteName: "Clawbrowser",
+    type: "website",
+    images: [{ url: "https://clawbrowser.ai/side-bite.svg", width: 256, height: 256 }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Documentation — Clawbrowser",
+    description: "Complete documentation for Clawbrowser: installation, managed sessions, fingerprint profiles, residential/datacenter proxy setup, and AI agent integration.",
+    images: ["https://clawbrowser.ai/side-bite.svg"],
+  },
 };
 
 function H2({ id, children }: { id: string; children: React.ReactNode }) {

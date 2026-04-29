@@ -27,7 +27,9 @@ export const metadata: Metadata = {
       { url: "/icon.svg", type: "image/svg+xml" },
     ],
     shortcut: "/favicon.ico",
+    apple: "/icon.svg",
   },
+  metadataBase: new URL("https://clawbrowser.ai"),
 };
 
 export default function RootLayout({
@@ -40,6 +42,11 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+      </head>
       <body className="min-h-full flex flex-col bg-[#FAFAF8] dark:bg-[#0c0c0e] text-zinc-950 dark:text-zinc-50">
         <ThemeProvider>{children}</ThemeProvider>
         <Script src="https://www.googletagmanager.com/gtag/js?id=G-ZT2RLVFSVB" strategy="afterInteractive" />

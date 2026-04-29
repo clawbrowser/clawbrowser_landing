@@ -185,10 +185,10 @@ export default async function PostPage({
           )}
         </div>
 
-        {/* Cover image — full width within hero */}
+        {/* Cover image — full bleed within hero */}
         {(post.coverImageLight || post.coverImageDark || post.coverImage) && (
-          <div className="mx-auto max-w-5xl px-6 pb-0">
-            <div className="overflow-hidden rounded-t-2xl">
+          <div className="overflow-hidden">
+            <div className="overflow-hidden">
               {(post.coverImageLight || post.coverImageDark) ? (
                 <ThemedImage
                   light={post.coverImageLight ?? post.coverImageDark!}

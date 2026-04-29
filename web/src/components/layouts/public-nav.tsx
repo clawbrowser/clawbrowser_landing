@@ -60,8 +60,7 @@ export function PublicNav() {
           >
             <Image
               src="/side-bite.svg"
-              alt=""
-              aria-hidden="true"
+              alt="Clawbrowser logo"
               width={36}
               height={36}
               className="h-9 w-9 shrink-0 rounded-[18px]"

@@ -20,11 +20,14 @@ excerpt: "One sentence shown on the blog card. Keep it under 160 characters."
 date: "2025-06-01"
 author: "Your Name"
 tags: ["agents", "how-to"]
-coverImage: "/blog/my-cover.jpg"
+coverImageLight: "/blog/my-cover-light.png"
+coverImageDark:  "/blog/my-cover-dark.png"
 ---
 
 Your article content starts here...
 ```
+
+> **Tip:** Use `coverImageLight` + `coverImageDark` (preferred) for automatic light/dark theme switching, or `coverImage` for a single image shown in both themes.
 
 ### Frontmatter fields
 

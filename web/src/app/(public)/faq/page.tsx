@@ -1,11 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 
 export const metadata: Metadata = {
   title: "FAQ",
   description: "Answers to common questions about Clawbrowser: installation, fingerprint profiles, residential/datacenter proxy setup, API keys, and AI agent integration.",
   alternates: { canonical: "https://clawbrowser.ai/faq" },
+  openGraph: {
+    title: "FAQ — Clawbrowser",
+    description: "Answers to common questions about Clawbrowser: installation, fingerprint profiles, residential/datacenter proxy setup, API keys, and AI agent integration.",
+    url: "https://clawbrowser.ai/faq",
+    siteName: "Clawbrowser",
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title: "FAQ — Clawbrowser",
+    description: "Answers to common questions about Clawbrowser: installation, fingerprint profiles, residential/datacenter proxy setup, API keys, and AI agent integration.",
+  },
 };
 
 const faqs = [
@@ -31,7 +42,7 @@ const faqs = [
   },
   {
     q: "How do I get an API key?",
-    a: "Sign up at app.clawbrowser.ai. After creating an account, your API key is available in the dashboard. Set CLAWBROWSER_API_KEY or let the launcher prompt once and save it to ~/.config/clawbrowser/config.json.",
+    a: <>Sign up at <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:opacity-80">app.clawbrowser.ai</a>. After creating an account, your API key is available in the dashboard. Set <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">CLAWBROWSER_API_KEY</code> or let the launcher prompt once and save it to <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">~/.config/clawbrowser/config.json</code>.</>,
   },
   {
     q: "Can I use Clawbrowser with Playwright or Puppeteer?",
@@ -59,7 +70,7 @@ const faqs = [
   },
   {
     q: "Where can I find the latest release and changelog?",
-    a: "Releases are published on GitHub: github.com/clawbrowser/clawbrowser/releases. By default, the install script installs the current stable release.",
+    a: <>Releases are published on GitHub: <a href="https://github.com/clawbrowser/clawbrowser/releases" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:opacity-80">github.com/clawbrowser/clawbrowser/releases</a>. By default, the install script installs the current stable release.</>,
   },
 ];
 
@@ -83,9 +94,6 @@ export default function FaqPage() {
 
       <div className="border-b border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-950 px-6 py-16 text-center">
         <div className="mx-auto max-w-2xl">
-          <Breadcrumbs
-            crumbs={[{ label: "Home", href: "/" }, { label: "FAQ" }]}
-          />
           <p className="mb-3 text-sm font-medium tracking-widest text-zinc-400 dark:text-zinc-500 uppercase">
             FAQ
           </p>
@@ -118,9 +126,9 @@ export default function FaqPage() {
                   <path d="M4 6l4 4 4-4" />
                 </svg>
               </summary>
-              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
+              <div className="mt-3 whitespace-pre-line text-sm leading-relaxed text-zinc-600 dark:text-zinc-400">
                 {a}
-              </p>
+              </div>
             </details>
           ))}
         </dl>

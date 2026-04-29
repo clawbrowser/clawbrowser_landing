@@ -7,6 +7,20 @@ export const metadata: Metadata = {
   title: "Blog",
   description: "Thoughts on browser automation, AI agents, fingerprinting, and building reliable web infrastructure from the Clawbrowser team.",
   alternates: { canonical: "https://clawbrowser.ai/blog" },
+  openGraph: {
+    title: "Blog — Clawbrowser",
+    description: "Thoughts on browser automation, AI agents, fingerprinting, and building reliable web infrastructure from the Clawbrowser team.",
+    url: "https://clawbrowser.ai/blog",
+    siteName: "Clawbrowser",
+    type: "website",
+    images: [{ url: "https://clawbrowser.ai/side-bite.svg", width: 256, height: 256 }],
+  },
+  twitter: {
+    card: "summary",
+    title: "Blog — Clawbrowser",
+    description: "Thoughts on browser automation, AI agents, fingerprinting, and building reliable web infrastructure from the Clawbrowser team.",
+    images: ["https://clawbrowser.ai/side-bite.svg"],
+  },
 };
 
 export default function BlogPage() {
