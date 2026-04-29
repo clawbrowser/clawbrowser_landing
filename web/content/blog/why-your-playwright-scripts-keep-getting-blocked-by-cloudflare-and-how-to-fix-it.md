@@ -8,7 +8,8 @@ authorRole: "Engineering"
 authorGithub: "https://github.com/clawbrowser"
 authorTwitter: "https://x.com/clawbrowser"
 tags: ["playwright", "cloudflare", "anti-bot", "troubleshooting"]
-coverImage: "/blog/playwright-cloudflare-blocked-cover-light.png"
+coverImageLight: "/blog/playwright-cloudflare-blocked-cover-light.png"
+coverImageDark: "/blog/playwright-cloudflare-blocked-cover-dark.png"
 ---
 
 If your Playwright script was working last week and is now hitting Cloudflare's challenge page — or returning HTTP 403 with `error 1020` — the problem is almost never your code. The problem is that your browser is identifying itself as automation through a stack of signals you may not even know it's emitting.

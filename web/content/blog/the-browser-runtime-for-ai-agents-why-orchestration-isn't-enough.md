@@ -8,7 +8,8 @@ authorRole: "Engineering"
 authorGithub: "https://github.com/clawbrowser"
 authorTwitter: "https://x.com/clawbrowser"
 tags: ["agents", "infrastructure", "browser-automation"]
-coverImage: "/blog/browser-runtime-ai-agents-cover-light.png"
+coverImageLight: "/blog/browser-runtime-ai-agents-cover-light.png"
+coverImageDark: "/blog/browser-runtime-ai-agents-cover-dark.png"
 ---
 
 Most AI agent failures on the web are not reasoning failures. They are infrastructure failures. The model picks the right link, fills the right field, plans the right sequence — and then the browser layer underneath collapses on a Cloudflare challenge, a fingerprint mismatch, or a session that silently leaks identity across tasks.

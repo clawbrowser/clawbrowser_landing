@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { getPost, getAllSlugs, type PostHeading, type ContentSegment } from "@/lib/blog";
 import { CodeBlock } from "@/components/docs/code-block";
 import { BlogCTA } from "@/components/blog/blog-cta";
@@ -109,7 +108,7 @@ export default async function PostPage({
         url={postUrl}
         datePublished={post.date}
         authorName={authorDisplay}
-        imageUrl={post.coverImage ? `https://clawbrowser.ai${post.coverImage}` : undefined}
+        imageUrl={(post.coverImageLight ?? post.coverImage) ? `https://clawbrowser.ai${post.coverImageLight ?? post.coverImage}` : undefined}
       />
       <BreadcrumbJsonLd
         crumbs={[
@@ -185,33 +184,18 @@ export default async function PostPage({
           )}
         </div>
 
-        {/* Cover image — full bleed within hero */}
+        {/* Cover image — full bleed, no max-width, no padding */}
         {(post.coverImageLight || post.coverImageDark || post.coverImage) && (
-          <div className="overflow-hidden">
-            <div className="overflow-hidden">
-              {(post.coverImageLight || post.coverImageDark) ? (
-                <ThemedImage
-                  light={post.coverImageLight ?? post.coverImageDark!}
-                  dark={post.coverImageDark ?? post.coverImageLight!}
-                  alt={post.title}
-                  bare
-                  className="w-full object-cover"
-                  width={1200}
-                  height={630}
-                  priority
-                />
-              ) : (
-                <Image
-                  src={post.coverImage!}
-                  alt={post.title}
-                  width={1200}
-                  height={630}
-                  className="w-full object-cover"
-                  priority
-                />
-              )}
-            </div>
-          </div>
+          <ThemedImage
+            light={post.coverImageLight ?? post.coverImage ?? post.coverImageDark!}
+            dark={post.coverImageDark ?? post.coverImage ?? post.coverImageLight!}
+            alt={post.title}
+            bare
+            className="block w-full max-h-[520px] object-cover"
+            width={1200}
+            height={630}
+            priority
+          />
         )}
       </div>
 

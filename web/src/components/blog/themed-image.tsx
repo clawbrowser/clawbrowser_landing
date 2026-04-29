@@ -33,15 +33,15 @@ export function ThemedImage({
   const src = !mounted || resolvedTheme !== "dark" ? light : dark;
 
   if (bare) {
+    // Use a plain <img> so no Next.js Image wrapper interferes with full-bleed layouts
+    // eslint-disable-next-line @next/next/no-img-element
     return (
-      <Image
+      <img
         src={src}
         alt={alt}
-        width={width}
-        height={height}
         className={className ?? "w-full object-cover"}
-        priority={priority}
-        unoptimized
+        loading={priority ? "eager" : "lazy"}
+        decoding="async"
       />
     );
   }
