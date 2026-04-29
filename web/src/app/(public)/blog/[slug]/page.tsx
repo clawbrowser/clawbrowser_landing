@@ -4,6 +4,7 @@ import Link from "next/link";
 import { getPost, getAllSlugs, type PostHeading, type ContentSegment } from "@/lib/blog";
 import { CodeBlock } from "@/components/docs/code-block";
 import { BlogCTA } from "@/components/blog/blog-cta";
+import { ThemedImage } from "@/components/blog/themed-image";
 import { AuthorCard, AuthorSidebar } from "@/components/blog/author-card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
