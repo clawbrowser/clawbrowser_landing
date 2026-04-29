@@ -154,7 +154,7 @@ export default async function PostPage({
           )}
 
           {/* Title */}
-          <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-zinc-950 dark:text-zinc-50 sm:text-5xl max-w-3xl">
+          <h1 className="mt-4 text-4xl font-bold leading-tight tracking-tight text-zinc-950 dark:text-zinc-50 sm:text-5xl">
             {post.title}
           </h1>
 

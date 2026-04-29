@@ -42,7 +42,7 @@ const faqs = [
   },
   {
     q: "How do I get an API key?",
-    a: <>Sign up at <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:opacity-80">app.clawbrowser.ai</a>. After creating an account, your API key is available in the dashboard. Set <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">CLAWBROWSER_API_KEY</code> or let the launcher prompt once and save it to <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">~/.config/clawbrowser/config.json</code>.</>,
+    a: <>Sign up at <a href="https://app.clawbrowser.ai" target="_blank" rel="noopener noreferrer" className="text-sky-500 underline underline-offset-2 hover:text-sky-400">app.clawbrowser.ai</a>. After creating an account, your API key is available in the dashboard. Set <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">CLAWBROWSER_API_KEY</code> or let the launcher prompt once and save it to <code className="rounded bg-zinc-100 dark:bg-zinc-800 px-1 text-xs">~/.config/clawbrowser/config.json</code>.</>,
   },
   {
     q: "Can I use Clawbrowser with Playwright or Puppeteer?",
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     q: "Where can I find the latest release and changelog?",
-    a: <>Releases are published on GitHub: <a href="https://github.com/clawbrowser/clawbrowser/releases" target="_blank" rel="noopener noreferrer" className="text-sky-600 dark:text-sky-400 underline underline-offset-2 hover:opacity-80">github.com/clawbrowser/clawbrowser/releases</a>. By default, the install script installs the current stable release.</>,
+    a: <>Releases are published on GitHub: <a href="https://github.com/clawbrowser/clawbrowser/releases" target="_blank" rel="noopener noreferrer" className="text-sky-500 underline underline-offset-2 hover:text-sky-400">github.com/clawbrowser/clawbrowser/releases</a>. By default, the install script installs the current stable release.</>,
   },
 ];
 
