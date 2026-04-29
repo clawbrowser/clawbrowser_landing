@@ -32,8 +32,8 @@ export async function generateMetadata({
       type: "article",
       publishedTime: post.date,
       authors: [post.authorName ?? post.author],
-      images: post.coverImage
-        ? [{ url: `https://clawbrowser.ai${post.coverImage}`, width: 1200, height: 630 }]
+      images: (post.coverImageLight ?? post.coverImage)
+        ? [{ url: `https://clawbrowser.ai${post.coverImageLight ?? post.coverImage}`, width: 1200, height: 630 }]
         : [],
     },
   };
@@ -186,17 +186,30 @@ export default async function PostPage({
         </div>
 
         {/* Cover image — full width within hero */}
-        {post.coverImage && (
+        {(post.coverImageLight || post.coverImageDark || post.coverImage) && (
           <div className="mx-auto max-w-5xl px-6 pb-0">
             <div className="overflow-hidden rounded-t-2xl">
-              <Image
-                src={post.coverImage}
-                alt={post.title}
-                width={1200}
-                height={630}
-                className="w-full object-cover"
-                priority
-              />
+              {(post.coverImageLight || post.coverImageDark) ? (
+                <ThemedImage
+                  light={post.coverImageLight ?? post.coverImageDark!}
+                  dark={post.coverImageDark ?? post.coverImageLight!}
+                  alt={post.title}
+                  bare
+                  className="w-full object-cover"
+                  width={1200}
+                  height={630}
+                  priority
+                />
+              ) : (
+                <Image
+                  src={post.coverImage!}
+                  alt={post.title}
+                  width={1200}
+                  height={630}
+                  className="w-full object-cover"
+                  priority
+                />
+              )}
             </div>
           </div>
         )}

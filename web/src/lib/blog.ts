@@ -15,6 +15,8 @@ export interface PostMeta {
   author: string;
   tags: string[];
   coverImage?: string;
+  coverImageLight?: string;
+  coverImageDark?: string;
   authorName?: string;
   authorRole?: string;
   authorGithub?: string;
@@ -160,6 +162,8 @@ export function getAllPostMeta(): PostMeta[] {
       author: data.author ?? "",
       tags: data.tags ?? [],
       coverImage: data.coverImage,
+      coverImageLight: data.coverImageLight,
+      coverImageDark: data.coverImageDark,
       authorName: data.authorName,
       authorRole: data.authorRole,
       authorGithub: data.authorGithub,
@@ -190,6 +194,8 @@ export async function getPost(slug: string): Promise<Post | null> {
     author: data.author ?? "",
     tags: data.tags ?? [],
     coverImage: data.coverImage,
+    coverImageLight: data.coverImageLight,
+    coverImageDark: data.coverImageDark,
     authorName: data.authorName,
     authorRole: data.authorRole,
     authorGithub: data.authorGithub,

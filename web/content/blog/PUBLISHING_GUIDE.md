@@ -35,7 +35,9 @@ Your article content starts here...
 | `date` | Yes | Format: `YYYY-MM-DD` |
 | `author` | Yes | Your name or team name (fallback if no authorName) |
 | `tags` | No | List of topics. Used for filtering. |
-| `coverImage` | No | Path to cover image. Falls back to auto icon if omitted. |
+| `coverImage` | No | Single cover image (shown in all themes). Falls back to auto icon if omitted. |
+| `coverImageLight` | No | Cover image for light theme. Use together with `coverImageDark`. |
+| `coverImageDark` | No | Cover image for dark theme. Use together with `coverImageLight`. |
 | `authorName` | No | Full name shown on the article page |
 | `authorRole` | No | Job title shown under the name |
 | `authorGithub` | No | Full URL to GitHub profile |
@@ -62,16 +64,22 @@ Example: `web/public/blog/my-article-cover.jpg`
 
 ### Step 2 — reference it in frontmatter
 
+**Single image (same in both themes):**
 ```markdown
 coverImage: "/blog/my-article-cover.jpg"
 ```
 
-The path must start with `/blog/`.
+**Separate images for light and dark theme:**
+```markdown
+coverImageLight: "/blog/my-article-cover-light.jpg"
+coverImageDark: "/blog/my-article-cover-dark.jpg"
+```
+
+The path must start with `/blog/`. When `coverImageLight`/`coverImageDark` are set they take priority over `coverImage` — both on the article page and in the blog grid cards.
 
 ### Example
 
-Image file at `web/public/blog/fingerprinting-cover.jpg`:
-
+Single cover:
 ```markdown
 ---
 title: "Browser Fingerprinting Explained"
@@ -79,7 +87,16 @@ coverImage: "/blog/fingerprinting-cover.jpg"
 ---
 ```
 
-If `coverImage` is not set, the card shows an automatic icon based on the article's first tag. This is fine — cover images are optional.
+Themed cover (switches automatically with the site theme):
+```markdown
+---
+title: "Browser Fingerprinting Explained"
+coverImageLight: "/blog/fingerprinting-cover-light.jpg"
+coverImageDark: "/blog/fingerprinting-cover-dark.jpg"
+---
+```
+
+If no cover field is set, the card shows an automatic icon based on the article's first tag. This is fine — cover images are optional.
 
 ---
 
@@ -240,7 +257,8 @@ authorRole: "Software Engineer"
 authorGithub: "https://github.com/alexkim"
 authorTwitter: "https://x.com/alexkim"
 tags: ["performance", "architecture"]
-coverImage: "/blog/memory-cover.jpg"
+coverImageLight: "/blog/memory-cover-light.jpg"
+coverImageDark: "/blog/memory-cover-dark.jpg"
 ---
 
 Browser automation at scale is expensive. A single Chrome instance uses 150–300MB of RAM.
@@ -278,7 +296,8 @@ claw session start --profile user-42
 - [ ] Frontmatter has `title`, `excerpt`, `date`, `author`
 - [ ] Date is in `YYYY-MM-DD` format
 - [ ] Filename uses dashes and lowercase only, ends in `.md`
-- [ ] If using a cover image — file is in `web/public/blog/` and path starts with `/blog/`
+- [ ] If using a cover image — file(s) are in `web/public/blog/` and path(s) start with `/blog/`
+- [ ] If using themed cover — both `coverImageLight` and `coverImageDark` are set and both files uploaded
 - [ ] Images inside the article are also in `web/public/blog/`
 - [ ] Themed images have both `light` and `dark` files uploaded
 - [ ] All `alt` attributes filled in (required for SEO)
