@@ -11,12 +11,6 @@ tags: ["playwright", "cloudflare", "anti-bot", "troubleshooting"]
 coverImage: "/blog/playwright-cloudflare-blocked-cover-dark.png"
 ---
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="/blog/playwright-cloudflare-blocked-cover-dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="/blog/playwright-cloudflare-blocked-cover-light.png">
-  <img src="/blog/playwright-cloudflare-blocked-cover-light.png" alt="Cover illustration: Playwright automation hitting a Cloudflare challenge">
-</picture>
-
 If your Playwright script was working last week and is now hitting Cloudflare's challenge page — or returning HTTP 403 with `error 1020` — the problem is almost never your code. The problem is that your browser is identifying itself as automation through a stack of signals you may not even know it's emitting.
 
 This guide explains why Playwright scripts get blocked by Cloudflare, what specifically Cloudflare is reading, and the four classes of fix ranked by how reliable they actually are in production. The TL;DR: page-level patches buy you a few weeks; a coherent identity at the browser-binary level is the only durable fix.
@@ -218,7 +212,7 @@ If your use case qualifies (search engine crawlers, monitoring services, accessi
 
 The same principles apply: the more coherent your identity at the binary level, the less easily detection systems can flag the session as automation. The specific signals each vendor weighs differently — DataDome leans heavily on behavioral patterns, Akamai on TLS, PerimeterX on a mix — but engine-level identity coherence is the structural answer across all of them.
 
-## Conclusion: Stop Patching, Start Aligning
+## Conclusion
 
 The pattern is consistent: Playwright + stock Chromium produces detectable signals, page-level patches address some signals while themselves becoming detectable, and the only durable answer is identity coherence inside the browser binary plus proxy egress that matches.
 
