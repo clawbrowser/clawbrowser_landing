@@ -183,26 +183,6 @@ export default async function PostPage({
           )}
         </div>
 
-        {/* Cover image — full bleed, plain <img>, CSS dark toggle (no client component) */}
-        {(post.coverImageLight || post.coverImageDark || post.coverImage) && (
-          <>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.coverImageLight ?? post.coverImage!}
-              alt={post.title}
-              className="block dark:hidden w-full max-h-[500px] object-cover"
-              loading="eager"
-            />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={post.coverImageDark ?? post.coverImage!}
-              alt=""
-              className="hidden dark:block w-full max-h-[500px] object-cover"
-              loading="eager"
-              aria-hidden="true"
-            />
-          </>
-        )}
       </div>
 
       {/* Content + TOC + Author sidebar */}
