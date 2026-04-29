@@ -4,7 +4,6 @@ import Link from "next/link";
 import { getPost, getAllSlugs, type PostHeading, type ContentSegment } from "@/lib/blog";
 import { CodeBlock } from "@/components/docs/code-block";
 import { BlogCTA } from "@/components/blog/blog-cta";
-import { ThemedImage } from "@/components/blog/themed-image";
 import { AuthorCard, AuthorSidebar } from "@/components/blog/author-card";
 import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { BlogPostingJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
@@ -184,18 +183,25 @@ export default async function PostPage({
           )}
         </div>
 
-        {/* Cover image — full bleed, no max-width, no padding */}
+        {/* Cover image — full bleed, plain <img>, CSS dark toggle (no client component) */}
         {(post.coverImageLight || post.coverImageDark || post.coverImage) && (
-          <ThemedImage
-            light={post.coverImageLight ?? post.coverImage ?? post.coverImageDark!}
-            dark={post.coverImageDark ?? post.coverImage ?? post.coverImageLight!}
-            alt={post.title}
-            bare
-            className="block w-full max-h-[520px] object-cover"
-            width={1200}
-            height={630}
-            priority
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.coverImageLight ?? post.coverImage!}
+              alt={post.title}
+              className="block dark:hidden w-full max-h-[500px] object-cover"
+              loading="eager"
+            />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={post.coverImageDark ?? post.coverImage!}
+              alt=""
+              className="hidden dark:block w-full max-h-[500px] object-cover"
+              loading="eager"
+              aria-hidden="true"
+            />
+          </>
         )}
       </div>
 
