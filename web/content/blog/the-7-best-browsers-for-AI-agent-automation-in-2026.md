@@ -1,10 +1,12 @@
 ---
 title: "The 7 Best Browsers for AI Agent Automation in 2026"
 excerpt: "Engine-level vs. plugin-level. Local vs. cloud. A ranked comparison of the seven browser options that matter for production AI agents."
-date: "2026-05-04"
+date: "2026-05-05"
 author: "Clawbrowser Team"
 authorName: "Clawbrowser Team"
 authorRole: "Engineering"
+authorGithub: "https://github.com/clawbrowser"
+authorTwitter: "https://x.com/clawbrowser"
 tags: ["agents", "comparison", "tooling", "browser-automation"]
 coverImageLight: "/blog/best-browsers-ai-agents-2026-cover-light.png"
 coverImageDark: "/blog/best-browsers-ai-agents-2026-cover-dark.png"
