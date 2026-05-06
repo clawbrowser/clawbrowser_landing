@@ -1,7 +1,7 @@
 const roadmapItems = [
   {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 16v-4M12 8h.01" />
       </svg>
@@ -12,7 +12,7 @@ const roadmapItems = [
   },
   {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <circle cx="12" cy="12" r="10" />
         <path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20" />
       </svg>
@@ -25,7 +25,7 @@ const roadmapItems = [
           href="https://whoerip.com"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-cyan-600 dark:text-cyan-400 underline underline-offset-2 hover:text-cyan-700 dark:hover:text-cyan-300"
+          className="text-cyan-500 underline underline-offset-2 hover:text-cyan-400"
         >
           whoerip.com
         </a>{" "}
@@ -35,11 +35,10 @@ const roadmapItems = [
   },
   {
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8M12 17v4" />
-        <path d="M10 10l2-2 2 2" />
-        <path d="M12 8v5" />
+        <path d="M10 10l2-2 2 2M12 8v5" />
       </svg>
     ),
     title: "Browser streaming",
@@ -56,7 +55,8 @@ export function RoadmapSection() {
       aria-labelledby="roadmap-heading"
     >
       <div className="mx-auto max-w-5xl">
-        <div className="mb-12 space-y-3 text-center">
+        {/* Header */}
+        <div className="mb-16 space-y-3 text-center">
           <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">What&apos;s coming</p>
           <h2
             id="roadmap-heading"
@@ -70,24 +70,49 @@ export function RoadmapSection() {
           </p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {roadmapItems.map((item, i) => (
+        {/* Timeline */}
+        <div className="mx-auto max-w-2xl">
+          <div className="relative">
+            {/* Vertical line */}
             <div
-              key={i}
-              className="flex flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400">
-                {item.icon}
-              </div>
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400" />
-                  <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{item.title}</h3>
+              className="absolute left-5 top-5 bottom-5 w-px"
+              style={{
+                background:
+                  "linear-gradient(to bottom, transparent, rgba(6,182,212,0.3) 15%, rgba(6,182,212,0.3) 85%, transparent)",
+              }}
+            />
+
+            <div className="space-y-6">
+              {roadmapItems.map((item, i) => (
+                <div key={i} className="relative flex gap-6">
+                  {/* Dot */}
+                  <div className="relative z-10 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 shadow-sm">
+                    {/* Pulsing amber status */}
+                    <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-50" />
+                      <span className="relative inline-flex h-3 w-3 rounded-full bg-amber-400 border-2 border-white dark:border-zinc-900" />
+                    </span>
+                    <span className="text-cyan-600 dark:text-cyan-400">{item.icon}</span>
+                  </div>
+
+                  {/* Card */}
+                  <div className="flex-1 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-5 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                        {item.title}
+                      </h3>
+                      <span className="shrink-0 rounded-full bg-amber-100 dark:bg-amber-950/40 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-400">
+                        In progress
+                      </span>
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                      {item.description}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{item.description}</p>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </div>
     </section>
