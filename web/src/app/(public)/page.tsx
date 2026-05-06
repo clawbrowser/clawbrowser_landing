@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { AgentIntegrationSection } from "@/components/marketing/agent-integration-section";
 import { AskAiSection } from "@/components/marketing/ask-ai-section";
+import { RoadmapSection } from "@/components/marketing/roadmap-section";
 import { ArchitectureSummary } from "@/components/marketing/architecture-summary";
 import { CapabilityList } from "@/components/marketing/capability-list";
 import { CliSection } from "@/components/marketing/cli-section";
@@ -40,6 +41,7 @@ export default function HomePage() {
       <ProxySection />
       <CliSection />
       <AgentIntegrationSection />
+      <RoadmapSection />
       <AskAiSection />
     </div>
   );

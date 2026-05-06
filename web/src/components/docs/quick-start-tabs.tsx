@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CodeBlock } from "@/components/docs/code-block";
 
 const INSTALL_BASE =
   "curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s --";
@@ -134,31 +135,6 @@ const AGENTS = [
 
 type AgentId = (typeof AGENTS)[number]["id"];
 
-function CopyButton({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      onClick={() => {
-        navigator.clipboard.writeText(code);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }}
-      className="absolute cursor-pointer right-3 top-3 flex items-center gap-1.5 rounded-md bg-zinc-700 px-2.5 py-1 text-xs font-medium text-zinc-300 transition-colors hover:bg-zinc-600"
-    >
-      {copied ? (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-          Copied
-        </>
-      ) : (
-        <>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy
-        </>
-      )}
-    </button>
-  );
-}
 
 export function QuickStartTabs() {
   const [active, setActive] = useState<AgentId>("claude");
@@ -200,12 +176,7 @@ export function QuickStartTabs() {
                 <p className="font-semibold text-zinc-900 dark:text-zinc-100 text-sm">{step.title}</p>
                 <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400 leading-relaxed">{step.body}</p>
                 {"code" in step && (
-                  <div className="relative mt-3">
-                    <pre className="overflow-x-auto rounded-xl bg-zinc-950 dark:bg-zinc-950 px-4 py-3 pr-24 text-sm text-zinc-100 font-mono leading-relaxed">
-                      {step.code}
-                    </pre>
-                    <CopyButton code={step.code} />
-                  </div>
+                  <CodeBlock code={step.code} />
                 )}
               </div>
             </li>

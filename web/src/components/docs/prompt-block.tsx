@@ -2,44 +2,38 @@
 
 import { useState } from "react";
 
-const agentPrompt = `Install Clawbrowser automatically.
+const agentPrompt = `Install Clawbrowser and clawctl by following the official Clawbrowser install documentation.
 
-Primary install path:
-curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- <target>
+Primary docs:
+- https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
+- https://github.com/clawbrowser/clawbrowser
 
-Targets:
-- claude for Claude Code and Claude Desktop
-- codex for Codex
-- gemini for Gemini CLI
-- all for Cursor, other agents, or multi-target install
+Instructions:
+1. Read INSTALL.md first.
+2. Follow the documented installation flow exactly.
+3. Start from the standalone clawctl archive for the current OS/arch.
+4. Do not download the browser archive manually as the bootstrap path.
+5. Do not download the portable runtime manually unless INSTALL.md explicitly documents that as an offline/pre-extracted runtime path.
+6. Do not use npm, npx, curl-piped installers, or a raw source checkout as the install path.
+7. Run clawctl install so it can install or reuse Clawbrowser and install the portable runtime when needed.
+8. Use the documented target/integration selection from INSTALL.md.
+9. After installation, verify the browser using the verification steps documented in INSTALL.md.
 
-Fallback references:
-- GitHub repo: https://github.com/clawbrowser/clawbrowser
-- Latest release: https://github.com/clawbrowser/clawbrowser/releases/latest
-- Container image: docker.io/clawbrowser/clawbrowser:latest (for VPS, server, no-display systems, or Docker fallback)
-- API key dashboard: https://app.clawbrowser.ai
+API key:
+- First check \${XDG_CONFIG_HOME:-$HOME/.config}/clawbrowser/config.json.
+- If api_key already exists, do not ask again.
+- If api_key is missing, ask once for the real API key from https://app.clawbrowser.ai.
+- Save it using the documented clawctl config command.
+- Never store the API key in shell rc files, environment variables, MCP config, agent config, project files, or logs.
 
-Requirements:
-- Detect the current agent/client and choose the correct install target.
-- Do not manually clone the repo.
-- On VPS, server, or headless/no-display systems, use the container image for the browser itself.
-- On desktop/macOS, the launcher uses Clawbrowser.app automatically.
-- Install the correct client integration automatically for the detected target.
-- Before asking for an API key, check ~/.config/clawbrowser/config.json — if api_key is already present, skip the prompt entirely.
-- Ask for the API key only if no saved key is available and the launcher prompts for it.
-- After obtaining the API key, persist it immediately to browser-managed config:
-    CONFIG_DIR="\${XDG_CONFIG_HOME:-\$HOME/.config}/clawbrowser"
-    mkdir -p "\$CONFIG_DIR"
-    python3 -c "
-import json, pathlib, sys
-p = pathlib.Path('\$CONFIG_DIR/config.json')
-p.write_text(json.dumps({'api_key': sys.argv[1]}, separators=(',',':')) + '\\n')
-p.chmod(0o600)
-" "THE_KEY"
-  This ensures the key is never prompted again.
-- Never store the API key in shell rc files or agent config. A one-shot CLAWBROWSER_API_KEY environment variable is acceptable for the current command, but browser-managed config is preferred.
-- Verify by starting Clawbrowser and confirming a live CDP endpoint responds.
-- Only ask for manual action if automation truly cannot complete.
+Expected result:
+- Standalone clawctl is installed and available.
+- clawctl install has completed successfully.
+- Clawbrowser is installed or reused.
+- The portable Linux runtime is installed only when the host requires it.
+- The selected agent integration is configured according to INSTALL.md.
+- clawctl start works.
+- Browser verification passes according to INSTALL.md.
 `;
 
 function CopyIcon() {

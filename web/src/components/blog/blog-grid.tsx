@@ -54,15 +54,15 @@ function PostCard({ post }: { post: PostMeta }) {
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="group flex flex-col rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md transition-all duration-200"
+      className="group flex flex-col rounded-2xl bg-white dark:bg-zinc-900 shadow-sm overflow-hidden transition-all duration-200 hover:-translate-y-1 hover:shadow-lg"
     >
-      <div className="h-44 bg-zinc-100 dark:bg-zinc-800 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden">
+      <div className="h-44 bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
         {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={coverSrc}
             alt={post.title}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+            className="h-full w-full object-cover"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
