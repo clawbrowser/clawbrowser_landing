@@ -62,7 +62,7 @@ function PostCard({ post }: { post: PostMeta }) {
           <img
             src={coverSrc}
             alt={post.title}
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover scale-110"
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center">
