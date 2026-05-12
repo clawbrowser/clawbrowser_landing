@@ -2,40 +2,6 @@ const roadmapItems = [
   {
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 16v-4M12 8h.01" />
-      </svg>
-    ),
-    title: "Guided profile setup",
-    description:
-      "Step-by-step prompts when creating a new fingerprint profile — pick country, connection type, and browser persona without needing to know every flag.",
-  },
-  {
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20" />
-      </svg>
-    ),
-    title: "IP verification skill",
-    description: (
-      <>
-        Built-in skill that checks your session&apos;s outbound IP via{" "}
-        <a
-          href="https://whoerip.com"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-cyan-500 underline underline-offset-2 hover:text-cyan-400"
-        >
-          whoerip.com
-        </a>{" "}
-        and surfaces geo, ASN, and proxy-detection score directly in the agent context.
-      </>
-    ),
-  },
-  {
-    icon: (
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         <rect x="2" y="3" width="20" height="14" rx="2" />
         <path d="M8 21h8M12 17v4" />
         <path d="M10 10l2-2 2 2M12 8v5" />
@@ -44,6 +10,79 @@ const roadmapItems = [
     title: "Browser streaming",
     description:
       "Live pixel stream of the managed browser session — watch or debug agent-controlled sessions in real time from any device without VNC or screen sharing.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+    title: "Temporary profiles",
+    description:
+      "Spin up a disposable browser identity in one click — isolated fingerprint, fresh cookies, auto-wiped after the session ends. No leftover traces, no manual cleanup.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M12 8v4l3 3" />
+      </svg>
+    ),
+    title: "OpenClaw setup",
+    description:
+      "Guided first-run wizard that connects your proxy, configures fingerprint defaults, and verifies the setup end-to-end — from zero to a working agent session in under two minutes.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+        <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+      </svg>
+    ),
+    title: "Use-case walkthroughs",
+    description:
+      "Step-by-step guides for the most common automation jobs — scraping, form filling, social monitoring, price tracking — each with a ready-to-run agent prompt and a short demo video.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="2" y="3" width="20" height="14" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+    ),
+    title: "Windows support",
+    description:
+      "Native Windows client with full feature parity — same profile management, proxy routing, and agent integration as macOS, packaged as a standard installer.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M18 8h1a4 4 0 0 1 0 8h-1" />
+        <path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z" />
+        <line x1="6" y1="1" x2="6" y2="4" />
+        <line x1="10" y1="1" x2="10" y2="4" />
+        <line x1="14" y1="1" x2="14" y2="4" />
+      </svg>
+    ),
+    title: "Marketing & content",
+    description:
+      "Backlink building, technical blog posts, and a polished GitHub presence. Each use case gets its own page and video — framed around real workflows the way Strawberry Browser and Next Browser do it.",
+  },
+  {
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="7.5 4.21 12 6.81 16.5 4.21" />
+        <polyline points="7.5 19.79 7.5 14.6 3 12" />
+        <polyline points="21 12 16.5 14.6 16.5 19.79" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    ),
+    title: "Extension pre-install",
+    description:
+      "Choose extensions to bundle into a profile at creation time — uBlock Origin and similar adblockers ship by default. Cleaner pages load faster, proxy bandwidth drops, and agent vision models get sharper screenshots to work with.",
   },
 ];
 

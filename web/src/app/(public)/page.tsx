@@ -8,6 +8,7 @@ import { CliSection } from "@/components/marketing/cli-section";
 import { HeroSection } from "@/components/marketing/hero-section";
 import { ProblemSolutionSection } from "@/components/marketing/problem-solution";
 import { ProxySection } from "@/components/marketing/proxy-section";
+import { UseCasesSection } from "@/components/marketing/use-cases-section";
 import { WebsiteJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
@@ -41,6 +42,7 @@ export default function HomePage() {
       <ProxySection />
       <CliSection />
       <AgentIntegrationSection />
+      <UseCasesSection />
       <RoadmapSection />
       <AskAiSection />
     </div>

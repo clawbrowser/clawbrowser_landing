@@ -75,6 +75,7 @@ export function PublicNav() {
             {sections.map((s) => (
               <NavAnchor key={s.hash} hash={s.hash}>{s.label}</NavAnchor>
             ))}
+            <Link href="/use-cases" className={navLink}>Use cases</Link>
             <Link href="/docs" className={navLink}>Docs</Link>
             <Link href="/blog" className={navLink}>Blog</Link>
             <Link href="/faq" className={navLink}>FAQ</Link>
@@ -121,6 +122,13 @@ export function PublicNav() {
                   </span>
                 </NavAnchor>
               ))}
+              <Link
+                href="/use-cases"
+                onClick={() => setOpen(false)}
+                className="block rounded-lg px-3 py-2.5 text-base text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-900"
+              >
+                Use cases
+              </Link>
               <Link
                 href="/docs"
                 onClick={() => setOpen(false)}
