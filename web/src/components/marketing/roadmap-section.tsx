@@ -67,7 +67,7 @@ const roadmapItems = [
     ),
     title: "Marketing & content",
     description:
-      "Backlink building, technical blog posts, and a polished GitHub presence. Each use case gets its own page and video — framed around real workflows the way Strawberry Browser and Next Browser do it.",
+      "Backlink building, technical blog posts, and a polished GitHub presence. Each use case gets its own page and video — framed around real workflows people actually run.",
   },
   {
     icon: (

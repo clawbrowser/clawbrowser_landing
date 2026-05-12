@@ -163,7 +163,7 @@ export default function DocsPage() {
       />
       {/* Sidebar */}
       <aside className="hidden w-48 shrink-0 lg:block">
-        <nav className="sticky top-8 flex flex-col gap-2">
+        <nav className="sticky top-24 flex flex-col gap-2">
           <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-zinc-400">
             On this page
           </span>
