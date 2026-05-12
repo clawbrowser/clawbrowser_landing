@@ -40,7 +40,7 @@ function DownloadButton() {
         href="https://github.com/clawbrowser/clawbrowser/releases/latest"
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50"
+        className="inline-flex items-center gap-2 rounded-full border border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 px-5 py-2.5 text-sm font-medium text-cyan-700 dark:text-cyan-400 transition-colors hover:bg-cyan-100 dark:hover:bg-cyan-900/40 hover:border-cyan-400 dark:hover:border-cyan-500"
       >
         <DownloadIcon />
         Download
@@ -52,7 +52,7 @@ function DownloadButton() {
     <a
       href={info.url}
       download
-      className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-5 py-2.5 text-sm font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-50"
+      className="inline-flex items-center gap-2 rounded-full border border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 px-5 py-2.5 text-sm font-medium text-cyan-700 dark:text-cyan-400 transition-colors hover:bg-cyan-100 dark:hover:bg-cyan-900/40 hover:border-cyan-400 dark:hover:border-cyan-500"
     >
       <DownloadIcon />
       Download for {info.label}
@@ -183,17 +183,10 @@ export function HeroSection() {
             </div>
           </div>
 
-          {/* Smart download button — detects OS, starts download immediately */}
-          <div className="mt-3 flex justify-center">
-            <DownloadButton />
-          </div>
         </div>
 
-        <p className="text-sm text-zinc-400 dark:text-zinc-500">
-          Works with Playwright, Puppeteer, and any CDP-compatible tool
-        </p>
-
         <div className="flex flex-wrap items-center justify-center gap-3">
+          <DownloadButton />
           <Button size="lg" variant="outline" href="/docs">Documentation</Button>
           <a
             href="https://github.com/clawbrowser/clawbrowser"
