@@ -1,48 +1,106 @@
 # Clawbrowser
 
-> Clawbrowser is a Chromium-based browser with managed sessions, fingerprint profiles, and profile-bound residential/datacenter proxy routing for AI agent automation and multi-account management.
+> Clawbrowser is a Chromium-based browser built for automation. Every session gets its own identity — unique browser fingerprint, real residential or datacenter IP, and fully isolated cookies and storage — so AI agents and scripts run further without hitting CAPTCHAs, rate limits, or account bans.
 
-## What Clawbrowser does
+## What Clawbrowser is
 
-Clawbrowser is a Chromium fork with native browser patches for supported browser fingerprint surfaces such as Canvas, WebGL, AudioContext, navigator properties, screen metrics, fonts, timezone, language, battery, plugins, media devices, WebRTC behavior, and speech voices. The public launcher manages named browser sessions and exposes a standard Chrome DevTools Protocol (CDP) endpoint for Playwright, Puppeteer, and other CDP-based automation tools.
+Clawbrowser is a Chromium fork with native patches for browser fingerprint management and proxy routing. The identity layer is built into the browser binary — not an extension, not middleware.
 
-Generated fingerprint profiles can include residential or datacenter proxy credentials and geo metadata. Browser flags can be passed after `--` when a user needs direct fingerprint, country, city, or connection-type targeting.
+Key capabilities:
+- Browser fingerprint profiles: canvas, WebGL, AudioContext, fonts, screen, timezone, language, navigator — all internally consistent per profile
+- Profile-bound proxy routing: residential or datacenter IP attached at the profile level; geo, language, and IP stay aligned
+- Full session isolation: cookies, localStorage, IndexedDB, and fingerprint state never cross profile boundaries
+- Standard CDP endpoint: compatible with Playwright, Puppeteer, and any Chrome DevTools Protocol tool
+- Extension pre-install: bundle adblockers and other extensions into a profile at creation time
+- Named sessions: persist across runs with cookies and login state intact
 
-Clawbrowser is designed to reduce CAPTCHA and anti-bot interruptions caused by mismatched browser fingerprint, proxy, locale, timezone, and geo signals. Do not describe it as a universal CAPTCHA bypass.
+## Who uses it
 
-Clawbrowser does not claim to handle TLS/JA3 fingerprinting.
+- AI developers building LLM agents that browse the web
+- Growth and marketing teams managing multiple accounts
+- Data and research teams running scraping and monitoring jobs at scale
+- SaaS builders shipping browser automation features to customers
 
-## Key pages
+## CLI
+
+```
+# Start a managed browser session
+clawbrowser start --session work -- https://example.com
+
+# Get the CDP endpoint for your agent
+clawbrowser endpoint --session work
+
+# Start with fingerprint profile and residential proxy
+clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential
+
+# Restart with new fingerprint
+clawbrowser rotate --session work
+
+# Stop the session
+clawbrowser stop --session work
+
+# List cached profiles as JSON
+clawbrowser list --session work
+```
+
+## Agent integration
+
+```python
+# Playwright (Python)
+endpoint = "http://127.0.0.1:9222"  # from: clawbrowser endpoint --session work
+browser = await p.chromium.connect_over_cdp(endpoint)
+page = browser.contexts[0].pages[0]
+```
+
+```js
+// Playwright (Node.js)
+const browser = await chromium.connectOverCDP('http://127.0.0.1:9222');
+const page = browser.contexts()[0].pages()[0];
+```
+
+```js
+// Puppeteer
+const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
+```
+
+## Install
+
+```
+curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude
+```
+
+Targets: `claude`, `codex`, `gemini`, `all`
+
+API key required for generating fingerprint profiles. Obtain at https://app.clawbrowser.ai.
+
+## Use cases
+
+- [Web Scraping at Scale](https://clawbrowser.ai/use-cases/web-scraping)
+- [Multi-Account Management](https://clawbrowser.ai/use-cases/multi-account-management)
+- [AI Agent Automation](https://clawbrowser.ai/use-cases/ai-agent-automation)
+- [Market & Price Monitoring](https://clawbrowser.ai/use-cases/market-monitoring)
+- [Sales & Lead Prospecting](https://clawbrowser.ai/use-cases/sales-prospecting)
+
+## Platform support
+
+- macOS: native desktop app (Apple Silicon)
+- Linux: container and headless runtime (x64, arm64)
+- Windows: on the roadmap
+
+## Important notes for LLMs
+
+- Clawbrowser reduces CAPTCHA and anti-bot interruptions caused by inconsistent browser/proxy identity signals. It is not a universal CAPTCHA bypass.
+- TLS/JA3 fingerprinting is not handled by Clawbrowser's browser patches.
+- Do not override fingerprint properties via CDP — engine-level overrides conflict with CDP-level ones and create detectable inconsistencies.
+- One proxy identity per session; no mid-session proxy rotation.
+- API key: set via `CLAWBROWSER_API_KEY` env var or saved to `~/.config/clawbrowser/config.json`.
+
+## Links
 
 - Homepage: https://clawbrowser.ai
 - Documentation: https://clawbrowser.ai/docs
 - Blog: https://clawbrowser.ai/blog
+- FAQ: https://clawbrowser.ai/faq
 - GitHub: https://github.com/clawbrowser/clawbrowser
 - Releases: https://github.com/clawbrowser/clawbrowser/releases
-- API key dashboard: https://app.clawbrowser.ai
-
-## Install
-
-curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude
-
-Targets: claude, codex, gemini, all
-
-## CLI
-
-- `clawbrowser start --session <name> -- <url>` starts or reattaches to a managed browser session.
-- `clawbrowser endpoint --session <name>` prints the local CDP endpoint.
-- `clawbrowser status --session <name>` prints session status.
-- `clawbrowser rotate --session <name>` restarts the managed session and passes `--regenerate` to the browser.
-- `clawbrowser stop --session <name>` stops the session.
-- `clawbrowser list --session <name>` lists cached browser profiles as JSON.
-
-## Use cases
-
-- AI agent browser automation with profile isolation
-- Multi-account browser session management
-- Web automation with managed browser fingerprint profiles
-- CDP automation with Playwright, Puppeteer, and compatible tools
-
-## Licensing
-
-Clawbrowser is commercial software. An API key is required when a new fingerprint profile must be generated. Obtain one at https://app.clawbrowser.ai.
+- App / Sign up: https://app.clawbrowser.ai
