@@ -73,76 +73,80 @@ const ICONS: Record<string, React.ReactNode> = {
   ),
 };
 
-function ArrowButton({
-  direction,
-  onClick,
-  disabled,
-}: {
-  direction: "left" | "right";
-  onClick: () => void;
-  disabled: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      aria-label={direction === "left" ? "Previous use cases" : "Next use cases"}
-      className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-zinc-500"
-    >
-      <svg
-        width="14"
-        height="14"
-        viewBox="0 0 14 14"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth="1.8"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        {direction === "left" ? (
-          <path d="M9 11L5 7l4-4" />
-        ) : (
-          <path d="M5 3l4 4-4 4" />
-        )}
-      </svg>
-    </button>
-  );
-}
+const N = USE_CASES.length; // 10
+const CLONES = 4; // clones prepended/appended (≥ max visible at once)
+
+// Strip: [last 4 clones] + [10 items] + [first 4 clones] = 18 entries
+const STRIP = [
+  ...USE_CASES.slice(-CLONES),
+  ...USE_CASES,
+  ...USE_CASES.slice(0, CLONES),
+];
 
 export function UseCasesSection() {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const [canLeft, setCanLeft] = useState(false);
-  const [canRight, setCanRight] = useState(true);
+  const clipRef = useRef<HTMLDivElement>(null);
+  // pos = index in STRIP of the first visible card; starts at CLONES (first real item)
+  const [pos, setPos] = useState(CLONES);
+  const [animated, setAnimated] = useState(true);
+  const [stepPx, setStepPx] = useState(0);
+  const teleportTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const updateState = useCallback(() => {
-    const el = scrollRef.current;
+  // Measure one card-step (card width + gap) from the clip container width
+  const measure = useCallback(() => {
+    const el = clipRef.current;
     if (!el) return;
-    setCanLeft(el.scrollLeft > 4);
-    setCanRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 4);
+    const w = el.clientWidth;
+    const visible =
+      window.innerWidth >= 1024 ? 4 : window.innerWidth >= 640 ? 2 : 1;
+    const gap = 16; // gap-4
+    setStepPx((w - gap * (visible - 1)) / visible + gap);
   }, []);
 
   useEffect(() => {
-    updateState();
-    const el = scrollRef.current;
-    if (!el) return;
-    el.addEventListener("scroll", updateState, { passive: true });
-    const ro = new ResizeObserver(updateState);
-    ro.observe(el);
-    return () => {
-      el.removeEventListener("scroll", updateState);
-      ro.disconnect();
-    };
-  }, [updateState]);
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (clipRef.current) ro.observe(clipRef.current);
+    return () => ro.disconnect();
+  }, [measure]);
 
-  const scroll = (dir: "left" | "right") => {
-    const el = scrollRef.current;
-    if (!el) return;
-    // scroll by ~4 card widths based on current container
-    const amount = Math.round(el.clientWidth * 0.85);
-    el.scrollBy({ left: dir === "right" ? amount : -amount, behavior: "smooth" });
-  };
+  const go = useCallback((dir: 1 | -1) => {
+    setAnimated(true);
+    setPos((p) => p + dir);
+  }, []);
+
+  // Teleport when pos drifts into clone zone (after animation finishes)
+  useEffect(() => {
+    if (teleportTimer.current) clearTimeout(teleportTimer.current);
+
+    if (pos >= CLONES + N) {
+      teleportTimer.current = setTimeout(() => {
+        setAnimated(false);
+        setPos(CLONES + (pos - CLONES - N));
+      }, 340);
+    } else if (pos < CLONES) {
+      teleportTimer.current = setTimeout(() => {
+        setAnimated(false);
+        setPos(CLONES + N - (CLONES - pos));
+      }, 340);
+    }
+
+    return () => {
+      if (teleportTimer.current) clearTimeout(teleportTimer.current);
+    };
+  }, [pos]);
+
+  // Re-enable animation after teleport (two rAF = safely after paint)
+  useEffect(() => {
+    if (!animated) {
+      const id = requestAnimationFrame(() =>
+        requestAnimationFrame(() => setAnimated(true))
+      );
+      return () => cancelAnimationFrame(id);
+    }
+  }, [animated]);
+
+  const translateX = stepPx > 0 ? -(pos - CLONES) * stepPx : 0;
+  const cardWidth = stepPx > 0 ? stepPx - 16 : undefined;
 
   return (
     <section
@@ -150,17 +154,24 @@ export function UseCasesSection() {
       className="relative border-t border-zinc-200 dark:border-zinc-800 overflow-hidden px-6 py-24"
       aria-labelledby="use-cases-heading"
       style={{
-        background: "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.07) 0%, transparent 65%), #fff",
+        background:
+          "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.07) 0%, transparent 65%), #fff",
       }}
     >
-      <div className="absolute inset-0 -z-10 hidden dark:block" style={{
-        background: "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.06) 0%, transparent 65%), #0c0c0e",
-      }} />
+      <div
+        className="absolute inset-0 -z-10 hidden dark:block"
+        style={{
+          background:
+            "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.06) 0%, transparent 65%), #0c0c0e",
+        }}
+      />
 
       <div className="mx-auto max-w-5xl">
         {/* Header */}
         <div className="mb-10 space-y-3 text-center">
-          <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">What you can build</p>
+          <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
+            What you can build
+          </p>
           <h2
             id="use-cases-heading"
             className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50"
@@ -169,52 +180,101 @@ export function UseCasesSection() {
             Built for real automation jobs
           </h2>
           <p className="mx-auto max-w-xl text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
-            Common workflows Clawbrowser handles out of the box — fingerprints, proxies, and isolation managed for you.
+            Common workflows Clawbrowser handles out of the box — fingerprints,
+            proxies, and isolation managed for you.
           </p>
         </div>
 
-        {/* Carousel */}
-        <div className="relative">
-          {/* Scroll container */}
-          <div
-            ref={scrollRef}
-            className="flex gap-4 overflow-x-auto scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pb-1"
+        {/* Carousel: px-10 reserves 40px on each side for the arrow buttons */}
+        <div className="relative px-10">
+          {/* Left arrow — mid-height of the card strip */}
+          <button
+            type="button"
+            onClick={() => go(-1)}
+            aria-label="Previous"
+            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100"
           >
-            {USE_CASES.map((uc) => (
-              <div
-                key={uc.slug}
-                className="group flex min-w-[calc(25%-12px)] max-w-[calc(25%-12px)] shrink-0 flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-all hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md sm:min-w-[calc(50%-8px)] sm:max-w-[calc(50%-8px)] lg:min-w-[calc(25%-12px)] lg:max-w-[calc(25%-12px)]"
-              >
-                {/* Icon */}
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400">
-                  {ICONS[uc.slug]}
-                </div>
+            <svg
+              width="14" height="14" viewBox="0 0 14 14"
+              fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M9 11L5 7l4-4" />
+            </svg>
+          </button>
 
-                {/* Text */}
-                <div className="flex flex-1 flex-col gap-1.5">
-                  <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">{uc.title}</h3>
-                  <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{uc.tagline}</p>
-                </div>
-
-                {/* CTA */}
-                <Link
-                  href={`/use-cases/${uc.slug}`}
-                  className="flex items-center gap-1 text-xs font-medium text-cyan-600 dark:text-cyan-400 transition-transform group-hover:translate-x-0.5"
+          {/* Clip: hides the overflowing clone cards */}
+          <div ref={clipRef} className="overflow-hidden">
+            {/* Strip: all 18 cards in a row */}
+            <div
+              className="flex gap-4"
+              style={{
+                transform: `translateX(${translateX}px)`,
+                transition: animated ? "transform 0.32s ease" : "none",
+              }}
+            >
+              {STRIP.map((uc, i) => (
+                <div
+                  key={`${uc.slug}-${i}`}
+                  className="group flex shrink-0 flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm transition-shadow hover:border-zinc-300 dark:hover:border-zinc-700 hover:shadow-md"
+                  style={
+                    cardWidth !== undefined
+                      ? { width: `${cardWidth}px` }
+                      : { minWidth: "calc(25% - 12px)" }
+                  }
                 >
-                  See how it works
-                  <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" />
-                  </svg>
-                </Link>
-              </div>
-            ))}
+                  {/* Icon */}
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400">
+                    {ICONS[uc.slug]}
+                  </div>
+
+                  {/* Text */}
+                  <div className="flex flex-1 flex-col gap-1.5">
+                    <h3 className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">
+                      {uc.title}
+                    </h3>
+                    <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">
+                      {uc.tagline}
+                    </p>
+                  </div>
+
+                  {/* CTA */}
+                  <Link
+                    href={`/use-cases/${uc.slug}`}
+                    className="flex items-center gap-1 text-xs font-medium text-cyan-600 dark:text-cyan-400 transition-transform group-hover:translate-x-0.5"
+                  >
+                    See how it works
+                    <svg
+                      width="12" height="12" viewBox="0 0 12 12"
+                      fill="none" stroke="currentColor" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M2 6h8M6.5 2.5L10 6l-3.5 3.5" />
+                    </svg>
+                  </Link>
+                </div>
+              ))}
+            </div>
           </div>
 
-          {/* Arrow row */}
-          <div className="mt-5 flex items-center justify-end gap-2">
-            <ArrowButton direction="left" onClick={() => scroll("left")} disabled={!canLeft} />
-            <ArrowButton direction="right" onClick={() => scroll("right")} disabled={!canRight} />
-          </div>
+          {/* Right arrow — mid-height of the card strip */}
+          <button
+            type="button"
+            onClick={() => go(1)}
+            aria-label="Next"
+            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-500 dark:text-zinc-400 shadow-sm transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-900 dark:hover:text-zinc-100"
+          >
+            <svg
+              width="14" height="14" viewBox="0 0 14 14"
+              fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M5 3l4 4-4 4" />
+            </svg>
+          </button>
         </div>
       </div>
     </section>
