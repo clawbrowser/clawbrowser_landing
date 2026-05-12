@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const features = [
   {
     icon: (
@@ -6,8 +10,8 @@ const features = [
       </svg>
     ),
     title: "Looks like a real browser",
-    description:
-      "Each profile has a unique browser fingerprint — the combination of signals sites use to tell humans from bots. Canvas, fonts, screen size, language, timezone all line up naturally.",
+    short: "Each profile has a unique fingerprint — the signals sites use to tell humans from bots.",
+    detail: "Canvas, fonts, screen size, language, and timezone all match each other naturally. No contradictions that trigger bot detection.",
   },
   {
     icon: (
@@ -17,8 +21,8 @@ const features = [
       </svg>
     ),
     title: "Browse from any location",
-    description:
-      "Attach a residential or datacenter IP to any profile. Your traffic exits from the country you choose — geo, language, and IP all match so nothing looks out of place.",
+    short: "Attach a residential or datacenter IP to any profile. Traffic exits from the country you choose.",
+    detail: "Geo, language, and IP all match so nothing looks out of place to the target site.",
   },
   {
     icon: (
@@ -28,8 +32,8 @@ const features = [
       </svg>
     ),
     title: "Accounts stay separate",
-    description:
-      "Every profile is a completely isolated bubble — own cookies, own storage, own identity. Open ten profiles and each one looks like a different person on a different computer.",
+    short: "Every profile is a completely isolated bubble — own cookies, own storage, own identity.",
+    detail: "Open ten profiles and each one looks like a different person on a different computer. Nothing leaks between sessions.",
   },
   {
     icon: (
@@ -39,8 +43,8 @@ const features = [
       </svg>
     ),
     title: "Works with your existing tools",
-    description:
-      "Connects over the same protocol as any Chromium browser. Playwright, Puppeteer, Claude Code, and custom scripts all work without any changes to your existing code.",
+    short: "Playwright, Puppeteer, Claude Code — everything works as-is, no changes needed.",
+    detail: "Connects over the same protocol as any Chromium browser. No custom SDKs, no wrappers.",
   },
   {
     icon: (
@@ -49,8 +53,8 @@ const features = [
       </svg>
     ),
     title: "Extensions pre-installed",
-    description:
-      "Bundle adblockers and other extensions into a profile when you create it. Pages load faster, tracking scripts are blocked before they run, and your proxy bill shrinks.",
+    short: "Bundle adblockers into a profile at creation time. Pages load faster, proxy bills shrink.",
+    detail: "Tracking scripts are blocked before they execute. Less data through paid proxies, cleaner pages for AI screenshots.",
   },
   {
     icon: (
@@ -60,18 +64,59 @@ const features = [
       </svg>
     ),
     title: "One command to start",
-    description:
-      "Run one command to launch a session. You get back a URL your agent connects to — no configuration files, no manual browser setup, no extra dependencies.",
+    short: "Launch a session with one command. Get back a URL your agent connects to.",
+    detail: "No config files, no manual browser setup, no extra dependencies. Your existing code just works.",
   },
 ];
+
+function FeatureCard({ icon, title, short, detail }: (typeof features)[0]) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
+      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400">
+        {icon}
+      </div>
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
+        <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{short}</p>
+        {open && (
+          <p className="mt-2 text-sm leading-relaxed text-zinc-400 dark:text-zinc-500">{detail}</p>
+        )}
+      </div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer w-fit"
+      >
+        {open ? "Show less" : "Show more"}
+        <svg
+          width="12" height="12" viewBox="0 0 12 12" fill="none"
+          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden="true"
+          className={`transition-transform ${open ? "rotate-180" : ""}`}
+        >
+          <path d="M2 4l4 4 4-4" />
+        </svg>
+      </button>
+    </div>
+  );
+}
 
 export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="border-t border-zinc-200 dark:border-zinc-800 bg-[#FAFAF8] dark:bg-[#0c0c0e] px-6 py-24"
+      className="relative border-t border-zinc-200 dark:border-zinc-800 overflow-hidden px-6 py-24"
       aria-labelledby="features-heading"
+      style={{
+        background: "radial-gradient(ellipse 120% 55% at 50% 0%, rgba(0,183,250,0.07) 0%, transparent 65%), #FAFAF8",
+      }}
     >
+      {/* dark mode bg */}
+      <div className="absolute inset-0 -z-10 hidden dark:block" style={{
+        background: "radial-gradient(ellipse 120% 55% at 50% 0%, rgba(0,183,250,0.06) 0%, transparent 65%), #0c0c0e",
+      }} />
+
       <div className="mx-auto max-w-5xl">
         <div className="mb-14 space-y-3 text-center">
           <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">What it does</p>
@@ -89,18 +134,7 @@ export function FeaturesSection() {
 
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((f) => (
-            <div
-              key={f.title}
-              className="flex flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm"
-            >
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400">
-                {f.icon}
-              </div>
-              <div>
-                <h3 className="mb-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{f.title}</h3>
-                <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{f.description}</p>
-              </div>
-            </div>
+            <FeatureCard key={f.title} {...f} />
           ))}
         </div>
       </div>

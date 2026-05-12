@@ -40,9 +40,15 @@ export function UseCasesSection() {
   return (
     <section
       id="use-cases"
-      className="border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0c0c0e] px-6 py-24"
+      className="relative border-t border-zinc-200 dark:border-zinc-800 overflow-hidden px-6 py-24"
       aria-labelledby="use-cases-heading"
+      style={{
+        background: "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.07) 0%, transparent 65%), #fff",
+      }}
     >
+      <div className="absolute inset-0 -z-10 hidden dark:block" style={{
+        background: "radial-gradient(ellipse 100% 60% at 50% 100%, rgba(0,183,250,0.06) 0%, transparent 65%), #0c0c0e",
+      }} />
       <div className="mx-auto max-w-5xl">
         {/* Header */}
         <div className="mb-14 space-y-3 text-center">
