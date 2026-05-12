@@ -1,10 +1,10 @@
 # Clawbrowser
 
-> Clawbrowser is a Chromium-based browser built for automation. Every session gets its own identity — unique browser fingerprint, real residential or datacenter IP, and fully isolated cookies and storage — so AI agents and scripts run further without hitting CAPTCHAs, rate limits, or account bans.
+> Agent-native browser with fingerprint control and proxy support. Every session gets its own identity — unique browser fingerprint, real residential or datacenter IP, and fully isolated cookies and storage — so AI agents and scripts run further without hitting CAPTCHAs, rate limits, or account bans.
 
 ## What Clawbrowser is
 
-Clawbrowser is a Chromium fork with native patches for browser fingerprint management and proxy routing. The identity layer is built into the browser binary — not an extension, not middleware.
+Clawbrowser is a managed browser runtime for AI agents. The identity layer is built into the browser binary — not an extension, not middleware.
 
 Key capabilities:
 - Browser fingerprint profiles: canvas, WebGL, AudioContext, fonts, screen, timezone, language, navigator — all internally consistent per profile
@@ -21,33 +21,53 @@ Key capabilities:
 - Data and research teams running scraping and monitoring jobs at scale
 - SaaS builders shipping browser automation features to customers
 
-## CLI
+## Install
+
+Use the standalone `clawctl` release archive for the host OS/arch. The browser archive is **not** the bootstrapper. `clawctl install` owns browser and portable runtime download and installation.
+
+```bash
+# macOS (Apple Silicon)
+archive="clawctl-macos-arm64.tar.gz"
+url="https://github.com/clawbrowser/clawbrowser/releases/latest/download/${archive}"
+curl -fL --retry 3 --retry-delay 2 -o "$archive" "$url"
+tar -xzf "$archive"
+cd clawctl-macos-arm64
+
+./clawctl install --json
+./clawctl config set api-key
+./clawctl start --profile work --url clawbrowser://verify/ --json
+./clawctl endpoint --profile work --json
+./clawctl verify --profile work --json
+```
+
+Linux: use `clawctl-linux-amd64.tar.gz` or `clawctl-linux-arm64.tar.gz`. No Docker, sudo, apt, manual portable runtime download, or physical display required.
+
+API key required. Obtain at https://app.clawbrowser.ai.
+
+## Agent flow
 
 ```
-# Start a managed browser session
-clawbrowser start --session work -- https://example.com
+clawctl install --json
+clawctl config set api-key
+clawctl start --profile work --url clawbrowser://verify/ --json
+clawctl endpoint --profile work --json
+clawctl verify --profile work --json
+```
 
-# Get the CDP endpoint for your agent
-clawbrowser endpoint --session work
+Attach your CDP client to the returned endpoint. Re-fetch the endpoint after `start`, `restart`, `rotate`, or failure. Do not persist CDP endpoints in config files.
 
-# Start with fingerprint profile and residential proxy
-clawbrowser start --session us -- --fingerprint=fp_us --country=US --connection-type=residential
+For an already-running browser or external CDP sidecar:
 
-# Restart with new fingerprint
-clawbrowser rotate --session work
-
-# Stop the session
-clawbrowser stop --session work
-
-# List cached profiles as JSON
-clawbrowser list --session work
+```
+clawctl --cdp http://127.0.0.1:9222 tabs list --json
+clawctl --cdp http://127.0.0.1:9222 verify --json
 ```
 
 ## Agent integration
 
 ```python
 # Playwright (Python)
-endpoint = "http://127.0.0.1:9222"  # from: clawbrowser endpoint --session work
+endpoint = "http://127.0.0.1:9222"  # from: clawctl endpoint --profile work --json
 browser = await p.chromium.connect_over_cdp(endpoint)
 page = browser.contexts[0].pages[0]
 ```
@@ -63,37 +83,51 @@ const page = browser.contexts()[0].pages()[0];
 const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' });
 ```
 
-## Install
+## Runtime modes
 
-```
-curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude
-```
+- **Portable Linux runtime** — default for Linux servers, no-display hosts, and restricted containers. No Docker required.
+- **macOS native app** — default on macOS. Requires a GUI desktop context (WindowServer).
+- **Docker backend** — optional, operator-managed infrastructure only.
+- **Existing CDP endpoint** — explicit `clawctl --cdp http://127.0.0.1:9222 ...` mode for sidecars or externally provisioned browsers.
 
-Targets: `claude`, `codex`, `gemini`, `all`
+## Archive names
 
-API key required for generating fingerprint profiles. Obtain at https://app.clawbrowser.ai.
+| Archive | Purpose |
+|---|---|
+| `clawctl-linux-amd64.tar.gz`, `clawctl-linux-arm64.tar.gz`, `clawctl-macos-arm64.tar.gz` | Standalone bootstrapper archives. Start here. |
+| `clawbrowser-linux-amd64.tar.gz`, `clawbrowser-linux-arm64.tar.gz`, `clawbrowser-macos-arm64.tar.gz` | Browser payload archives. `clawctl install` downloads one automatically. |
+| `clawbrowser-portable-linux-amd64-glibc.tar.gz`, `clawbrowser-portable-linux-arm64-glibc.tar.gz` | Portable Linux runtime with bundled Xvfb, libs, xkb data, and portable browser binary. |
 
 ## Use cases
 
+- [AI Agent Automation](https://clawbrowser.ai/use-cases/ai-agent-automation)
 - [Web Scraping at Scale](https://clawbrowser.ai/use-cases/web-scraping)
 - [Multi-Account Management](https://clawbrowser.ai/use-cases/multi-account-management)
-- [AI Agent Automation](https://clawbrowser.ai/use-cases/ai-agent-automation)
-- [Market & Price Monitoring](https://clawbrowser.ai/use-cases/market-monitoring)
-- [Sales & Lead Prospecting](https://clawbrowser.ai/use-cases/sales-prospecting)
+- [Lead Generation & Sales Prospecting](https://clawbrowser.ai/use-cases/lead-generation)
+- [Price & Inventory Monitoring](https://clawbrowser.ai/use-cases/price-monitoring)
+- [SEO & Competitive Research](https://clawbrowser.ai/use-cases/seo-research)
+- [Ad Intelligence & Marketing Research](https://clawbrowser.ai/use-cases/ad-intelligence)
+- [Social Media Management](https://clawbrowser.ai/use-cases/social-media)
+- [E-commerce & Retail Operations](https://clawbrowser.ai/use-cases/ecommerce-ops)
+- [Developer Testing & QA](https://clawbrowser.ai/use-cases/developer-testing)
 
 ## Platform support
 
 - macOS: native desktop app (Apple Silicon)
-- Linux: container and headless runtime (x64, arm64)
+- Linux: portable runtime, container and headless (x64, arm64)
 - Windows: on the roadmap
 
 ## Important notes for LLMs
 
+- The `clawctl` bootstrapper archive is the correct install entry point — not the browser archive and not the portable runtime archive.
+- `clawctl install` downloads the browser and portable runtime automatically when needed; do not download them manually unless building an offline image.
+- Do not use `/tmp` as the install location for `clawctl`, the portable runtime, config, cache, or agent plugins — many agent containers mount `/tmp` with `noexec`.
 - Clawbrowser reduces CAPTCHA and anti-bot interruptions caused by inconsistent browser/proxy identity signals. It is not a universal CAPTCHA bypass.
 - TLS/JA3 fingerprinting is not handled by Clawbrowser's browser patches.
-- Do not override fingerprint properties via CDP — engine-level overrides conflict with CDP-level ones and create detectable inconsistencies.
+- Do not override fingerprint properties via CDP — engine-level overrides conflict with browser-level ones and create detectable inconsistencies.
 - One proxy identity per session; no mid-session proxy rotation.
-- API key: set via `CLAWBROWSER_API_KEY` env var or saved to `~/.config/clawbrowser/config.json`.
+- API key: set via `clawctl config set api-key` or `CLAWBROWSER_API_KEY` env var. Do not store in shell rc files, env exports, or agent config.
+- Do not set `CLAWBROWSER_AGENT_CONFIG` or `CLAWBROWSER_AGENT_PLUGINS_DIR` unless you intentionally want a generic integration path — those overrides bypass agent-specific auto-detection.
 
 ## Links
 
