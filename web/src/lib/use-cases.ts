@@ -1,6 +1,7 @@
 export type UseCase = {
   slug: string;
   title: string;
+  shortTitle: string;
   tagline: string;
   description: string;
   problem: string;
@@ -13,6 +14,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "ai-agent-automation",
     title: "AI Agent Automation",
+    shortTitle: "AI Agent Automation",
     tagline: "Give your AI agent a browser that doesn't get blocked",
     description:
       "LLM-based agents need a browser they can drive without hitting bot walls. Clawbrowser exposes a standard CDP endpoint so any agent framework works — and handles the fingerprint and proxy layer so the agent focuses on the task.",
@@ -63,6 +65,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "web-scraping",
     title: "Web Scraping at Scale",
+    shortTitle: "Web Scraping",
     tagline: "Extract data from any site without getting blocked",
     description:
       "Run parallel browser sessions with rotating fingerprints and residential proxies. Each session looks like a real user from a different location — adblockers cut page weight and proxy bandwidth.",
@@ -113,6 +116,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "multi-account-management",
     title: "Multi-Account Management",
+    shortTitle: "Multi-Account Mgmt",
     tagline: "Run unlimited accounts without triggering bans",
     description:
       "Every account lives in a fully isolated browser profile. Cookies, localStorage, IndexedDB, canvas fingerprints, and proxy IPs never touch across profiles — platforms see independent users on different devices.",
@@ -163,6 +167,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "lead-generation",
     title: "Lead Generation & Sales Prospecting",
+    shortTitle: "Leads & Sales",
     tagline: "Research and enrich leads without getting accounts flagged",
     description:
       "Automate outreach research, contact extraction, and CRM enrichment using AI agents that browse as real users. Profile-bound proxies and fingerprint rotation prevent the account flags that kill manual prospecting tools.",
@@ -213,6 +218,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "price-monitoring",
     title: "Price & Inventory Monitoring",
+    shortTitle: "Price Monitoring",
     tagline: "Track prices and stock across any site, continuously",
     description:
       "Run real-time monitoring jobs across e-commerce sites, marketplaces, and price comparison pages. Rotating fingerprints and geo-targeted proxies keep monitors running even on sites with aggressive scraping defenses.",
@@ -263,6 +269,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "seo-research",
     title: "SEO & Competitive Research",
+    shortTitle: "SEO Research",
     tagline: "Track rankings and spy on competitors without getting rate-limited",
     description:
       "Automate SERP monitoring, competitor content analysis, and keyword tracking with browser sessions that look like real searches. Get accurate local rankings, AI Overview data, and competitor intelligence at scale.",
@@ -313,6 +320,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "ad-intelligence",
     title: "Ad Intelligence & Marketing Research",
+    shortTitle: "Ad Intelligence",
     tagline: "Monitor competitor ads and campaigns across every platform",
     description:
       "Scrape ad libraries, landing pages, and marketing assets from Facebook, Google, TikTok, and competitor sites — with browser sessions that bypass ad platform bot detection and render creative exactly as a real user would see it.",
@@ -363,6 +371,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "social-media",
     title: "Social Media Management",
+    shortTitle: "Social Media Mgmt",
     tagline: "Manage multiple brand accounts without triggering platform bans",
     description:
       "Operate social media accounts at scale with full browser isolation per account. Each profile has a unique fingerprint, dedicated proxy, and independent storage — platforms see separate users, not one tool managing many accounts.",
@@ -413,6 +422,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "ecommerce-ops",
     title: "E-commerce & Retail Operations",
+    shortTitle: "E-commerce & Retail",
     tagline: "Automate product research, monitoring, and restocking workflows",
     description:
       "From inventory monitoring to product research across multiple marketplaces, run e-commerce automation workflows with browser sessions that survive anti-bot protection on major retail platforms.",
@@ -463,6 +473,7 @@ export const USE_CASES: UseCase[] = [
   {
     slug: "developer-testing",
     title: "Developer Testing & QA",
+    shortTitle: "Dev Testing & QA",
     tagline: "Test against real-world browser conditions without flaky results",
     description:
       "Run end-to-end tests and staging verifications with browser profiles that match production conditions: real fingerprints, geo-specific proxies, and authentic session states. Catch issues that only appear in production browser environments.",

@@ -87,15 +87,15 @@ function UseCasesDropdown() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-56 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-1.5 shadow-lg ring-1 ring-black/5 dark:ring-white/5 z-50">
+        <div className="absolute left-0 top-full mt-2 w-auto min-w-[200px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-1.5 shadow-lg ring-1 ring-black/5 dark:ring-white/5 z-50">
           {USE_CASES.map((uc) => (
             <Link
               key={uc.slug}
               href={`/use-cases/${uc.slug}`}
               onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-950 dark:hover:text-zinc-50 transition-colors"
+              className="block px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-950 dark:hover:text-zinc-50 transition-colors whitespace-nowrap"
             >
-              {uc.title}
+              {uc.shortTitle}
             </Link>
           ))}
         </div>
@@ -215,7 +215,7 @@ export function PublicNav() {
                         onClick={() => { setOpen(false); setUseCasesOpen(false); }}
                         className="block rounded-lg px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
                       >
-                        {uc.title}
+                        {uc.shortTitle}
                       </Link>
                     ))}
                   </div>
