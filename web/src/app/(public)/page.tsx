@@ -1,23 +1,20 @@
 import type { Metadata } from "next";
-import { AgentIntegrationSection } from "@/components/marketing/agent-integration-section";
 import { AskAiSection } from "@/components/marketing/ask-ai-section";
-import { RoadmapSection } from "@/components/marketing/roadmap-section";
-import { ArchitectureSummary } from "@/components/marketing/architecture-summary";
-import { CapabilityList } from "@/components/marketing/capability-list";
-import { CliSection } from "@/components/marketing/cli-section";
+import { BenefitsSection } from "@/components/marketing/benefits-section";
+import { FeaturesSection } from "@/components/marketing/features-section";
 import { HeroSection } from "@/components/marketing/hero-section";
 import { ProblemSolutionSection } from "@/components/marketing/problem-solution";
-import { ProxySection } from "@/components/marketing/proxy-section";
+import { RoadmapSection } from "@/components/marketing/roadmap-section";
 import { UseCasesSection } from "@/components/marketing/use-cases-section";
 import { WebsiteJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
   title: { absolute: "Clawbrowser — Browser built for AI agents" },
-  description: "Chromium fork with managed browser sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agents. Works with Playwright, Puppeteer, and any CDP tool.",
+  description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies. AI agents and scripts run further without hitting blocks or CAPTCHAs.",
   alternates: { canonical: "https://clawbrowser.ai" },
   openGraph: {
     title: "Clawbrowser — Browser built for AI agents",
-    description: "Chromium fork with managed browser sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agents. Works with Playwright, Puppeteer, and any CDP tool.",
+    description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies. AI agents and scripts run further without hitting blocks or CAPTCHAs.",
     url: "https://clawbrowser.ai",
     siteName: "Clawbrowser",
     type: "website",
@@ -26,7 +23,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary",
     title: "Clawbrowser — Browser built for AI agents",
-    description: "Chromium fork with managed browser sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agents.",
+    description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies.",
     images: ["https://clawbrowser.ai/side-bite.svg"],
   },
 };
@@ -37,11 +34,8 @@ export default function HomePage() {
       <WebsiteJsonLd />
       <HeroSection />
       <ProblemSolutionSection />
-      <ArchitectureSummary />
-      <CapabilityList />
-      <ProxySection />
-      <CliSection />
-      <AgentIntegrationSection />
+      <FeaturesSection />
+      <BenefitsSection />
       <UseCasesSection />
       <RoadmapSection />
       <AskAiSection />
