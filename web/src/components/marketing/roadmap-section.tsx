@@ -245,9 +245,10 @@ export function RoadmapSection() {
   const inProgressItems = roadmapItems.filter((i) => i.status === "in-progress");
   const todoItems = roadmapItems.filter((i) => i.status === "todo");
 
-  // Visible done: always show last SHOW_DONE; older ones toggle
-  const visibleDone = showOlderDone ? doneItems : doneItems.slice(-SHOW_DONE);
-  const hiddenDoneCount = doneItems.length - SHOW_DONE;
+  // Always show last SHOW_DONE; older ones appear above when toggled
+  const olderDone = doneItems.slice(0, doneItems.length - SHOW_DONE);
+  const visibleDone = doneItems.slice(-SHOW_DONE);
+  const hiddenDoneCount = olderDone.length;
 
   // Visible in-progress: always show first SHOW_INPROGRESS
   const visibleInProgress = inProgressItems.slice(0, SHOW_INPROGRESS);
@@ -302,10 +303,9 @@ export function RoadmapSection() {
               />
 
               {/* Older done items (expanded) */}
-              {showOlderDone &&
-                doneItems.slice(0, doneItems.length - SHOW_DONE).map((item) => (
-                  <Item key={item.title} {...item} />
-                ))}
+              {showOlderDone && olderDone.map((item) => (
+                <Item key={item.title} {...item} />
+              ))}
 
               {/* Always-visible done */}
               {visibleDone.map((item) => (
