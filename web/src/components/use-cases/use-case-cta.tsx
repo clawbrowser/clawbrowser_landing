@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { APP_LOGIN_URL } from "@/lib/links";
+import { APP_SIGNUP_URL } from "@/lib/links";
 
 const agentPrompt = `Install Clawbrowser and clawctl by following the official Clawbrowser install documentation.
 
@@ -83,7 +83,7 @@ export function UseCaseCTA() {
             {copied ? "Copied!" : "Copy install prompt"}
           </button>
           <Link
-            href={APP_LOGIN_URL}
+            href={APP_SIGNUP_URL}
             className="inline-flex items-center rounded-full bg-zinc-950 dark:bg-zinc-50 px-5 py-2.5 text-sm font-medium text-white dark:text-zinc-950 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200"
           >
             Get started free →

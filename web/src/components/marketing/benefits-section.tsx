@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { APP_LOGIN_URL } from "@/lib/links";
+import { APP_SIGNUP_URL } from "@/lib/links";
 
 const benefits = [
   {
@@ -70,7 +70,7 @@ export function BenefitsSection() {
         {/* CTA row */}
         <div className="mt-14 flex flex-wrap items-center justify-center gap-4">
           <Link
-            href={APP_LOGIN_URL}
+            href={APP_SIGNUP_URL}
             className="inline-flex items-center rounded-full bg-zinc-950 dark:bg-zinc-50 px-6 py-2.5 text-sm font-medium text-white dark:text-zinc-950 transition-colors hover:bg-zinc-700 dark:hover:bg-zinc-200"
           >
             Get started free

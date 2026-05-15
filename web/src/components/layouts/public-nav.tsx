@@ -6,7 +6,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { APP_LOGIN_URL } from "@/lib/links";
+import { APP_LOGIN_URL, APP_SIGNUP_URL } from "@/lib/links";
 import { USE_CASES } from "@/lib/use-cases";
 
 const navLink =
@@ -151,7 +151,7 @@ export function PublicNav() {
             >
               Log in
             </a>
-            <Button size="sm" href={APP_LOGIN_URL}>Sign up</Button>
+            <Button size="sm" href={APP_SIGNUP_URL}>Sign up</Button>
             {/* Mobile: hamburger */}
             <button
               onClick={() => setOpen((v) => !v)}
