@@ -106,18 +106,17 @@ export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="relative border-t border-zinc-200 dark:border-zinc-800 overflow-hidden px-6 py-24"
+      className="relative border-t border-zinc-200 dark:border-zinc-800 overflow-hidden px-6 py-24 bg-[#FAFAF8] dark:bg-[#0c0c0e]"
       aria-labelledby="features-heading"
-      style={{
-        background: "radial-gradient(ellipse 120% 55% at 50% 0%, rgba(0,183,250,0.07) 0%, transparent 65%), #FAFAF8",
-      }}
     >
-      {/* dark mode bg */}
-      <div className="absolute inset-0 -z-10 hidden dark:block" style={{
-        background: "radial-gradient(ellipse 120% 55% at 50% 0%, rgba(0,183,250,0.06) 0%, transparent 65%), #0c0c0e",
-      }} />
+      {/* Gradient glow — sits above bg-color, below content (DOM order) */}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(ellipse 120% 55% at 50% 0%, rgba(0,183,250,0.07) 0%, transparent 65%)" }}
+        aria-hidden="true"
+      />
 
-      <div className="mx-auto max-w-5xl">
+      <div className="relative mx-auto max-w-5xl">
         <div className="mb-14 space-y-3 text-center">
           <p className="text-sm font-medium text-cyan-600 dark:text-cyan-400">What it does</p>
           <h2
