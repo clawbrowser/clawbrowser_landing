@@ -98,7 +98,7 @@ const roadmapItems: {
       "Step-by-step guides for common automation jobs — each with a ready-to-run agent prompt and a short demo video.",
   },
   {
-    status: "todo",
+    status: "done",
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="3" width="20" height="14" rx="2" />
@@ -107,7 +107,7 @@ const roadmapItems: {
     ),
     title: "Windows support",
     description:
-      "Native Windows client with full feature parity — same profile management, proxy routing, and agent integration.",
+      "Native Windows client with full feature parity — profile management, proxy routing, and agent integration.",
   },
   {
     status: "todo",

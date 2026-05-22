@@ -115,7 +115,7 @@ const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' })
 
 - macOS: native desktop app (Apple Silicon)
 - Linux: portable runtime, container and headless (x64, arm64)
-- Windows: on the roadmap
+- Windows: supported
 
 ## Important notes for LLMs
 

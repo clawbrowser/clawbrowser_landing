@@ -50,7 +50,7 @@ const faqs = [
   },
   {
     q: "What platforms does Clawbrowser support?",
-    a: "Clawbrowser is available as a macOS desktop app and as a Linux container/headless runtime. Windows support is on the roadmap. For VPS or CI deployments, use the Docker-backed launcher/container image: docker.io/clawbrowser/clawbrowser:latest.",
+    a: "Clawbrowser is available on macOS (desktop app), Linux (container/headless runtime), and Windows. For VPS or CI deployments, use the Docker-backed launcher/container image: docker.io/clawbrowser/clawbrowser:latest.",
   },
   {
     q: "How do I install Clawbrowser for Claude Code or another AI agent?",

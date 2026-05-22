@@ -7,9 +7,10 @@ const VERSION = "1.0.0";
 const BASE = `https://github.com/clawbrowser/clawbrowser/releases/download/${VERSION}`;
 
 const ASSETS = {
-  "macos-arm64": { url: `${BASE}/clawbrowser-macos-arm64.tar.gz`, label: "macOS (Apple Silicon)", os: "macOS" },
-  "linux-x64":   { url: `${BASE}/clawbrowser-linux-x64.tar.gz`,   label: "Linux (x64)",          os: "Linux" },
-  "linux-arm64": { url: `${BASE}/clawbrowser-linux-arm64.tar.gz`, label: "Linux (arm64)",         os: "Linux" },
+  "macos-arm64":  { url: `${BASE}/clawbrowser-macos-arm64.tar.gz`,  label: "macOS (Apple Silicon)", os: "macOS"   },
+  "linux-x64":    { url: `${BASE}/clawbrowser-linux-x64.tar.gz`,    label: "Linux (x64)",           os: "Linux"   },
+  "linux-arm64":  { url: `${BASE}/clawbrowser-linux-arm64.tar.gz`,  label: "Linux (arm64)",          os: "Linux"   },
+  "windows-x64":  { url: `${BASE}/clawbrowser-windows-x64.exe`,     label: "Windows (x64)",          os: "Windows" },
 } as const;
 
 type AssetKey = keyof typeof ASSETS;
@@ -18,13 +19,15 @@ function detectAsset(): AssetKey | null {
   if (typeof navigator === "undefined") return null;
   const ua = navigator.userAgent;
   const plat = navigator.platform ?? "";
-  const isMac = /Mac/.test(plat) || /Macintosh/.test(ua);
-  const isLinux = /Linux/.test(plat) || (/Linux/.test(ua) && !/Android/.test(ua));
-  const isArm = /arm|aarch64/i.test(ua);
-  if (isMac) return "macos-arm64";
+  const isMac     = /Mac/.test(plat) || /Macintosh/.test(ua);
+  const isWindows = /Win/.test(plat) || /Windows/.test(ua);
+  const isLinux   = /Linux/.test(plat) || (/Linux/.test(ua) && !/Android/.test(ua));
+  const isArm     = /arm|aarch64/i.test(ua);
+  if (isMac)     return "macos-arm64";
+  if (isWindows) return "windows-x64";
   if (isLinux && isArm) return "linux-arm64";
-  if (isLinux) return "linux-x64";
-  return null; // Windows / unknown
+  if (isLinux)   return "linux-x64";
+  return null;
 }
 
 function DownloadButton() {
@@ -34,7 +37,7 @@ function DownloadButton() {
   const info = asset ? ASSETS[asset] : null;
 
   if (!info) {
-    // Windows or unknown — link to releases page
+    // Unknown platform — link to releases page
     return (
       <a
         href="https://github.com/clawbrowser/clawbrowser/releases/latest"
