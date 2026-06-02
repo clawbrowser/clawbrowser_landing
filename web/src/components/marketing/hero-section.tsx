@@ -3,14 +3,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
-const VERSION = "1.0.0";
-const BASE = `https://github.com/clawbrowser/clawbrowser/releases/download/${VERSION}`;
+const BASE = "https://github.com/clawbrowser/clawbrowser/releases/latest/download";
 
 const ASSETS = {
   "macos-arm64":  { url: `${BASE}/clawbrowser-macos-arm64.tar.gz`,  label: "macOS (Apple Silicon)", os: "macOS"   },
-  "linux-x64":    { url: `${BASE}/clawbrowser-linux-x64.tar.gz`,    label: "Linux (x64)",           os: "Linux"   },
+  "linux-x64":    { url: `${BASE}/clawbrowser-linux-amd64.tar.gz`,  label: "Linux (x64)",           os: "Linux"   },
   "linux-arm64":  { url: `${BASE}/clawbrowser-linux-arm64.tar.gz`,  label: "Linux (arm64)",          os: "Linux"   },
-  "windows-x64":  { url: `${BASE}/clawbrowser-windows-x64.exe`,     label: "Windows (x64)",          os: "Windows" },
+  "windows-x64":  { url: `${BASE}/clawbrowser-win-amd64.zip`,       label: "Windows (x64)",          os: "Windows" },
 } as const;
 
 type AssetKey = keyof typeof ASSETS;
