@@ -28,7 +28,7 @@ Use the standalone `clawctl` release archive for the host OS/arch. The browser a
 ```bash
 # macOS (Apple Silicon)
 archive="clawctl-macos-arm64.tar.gz"
-url="https://github.com/clawbrowser/clawbrowser/releases/latest/download/${archive}"
+url="https://github.com/clawbrowser/clawctl/releases/latest/download/${archive}"
 curl -fL --retry 3 --retry-delay 2 -o "$archive" "$url"
 tar -xzf "$archive"
 cd clawctl-macos-arm64
@@ -94,7 +94,7 @@ const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' })
 
 | Archive | Purpose |
 |---|---|
-| `clawctl-linux-amd64.tar.gz`, `clawctl-linux-arm64.tar.gz`, `clawctl-macos-arm64.tar.gz` | Standalone bootstrapper archives. Start here. |
+| `clawctl-linux-amd64.tar.gz`, `clawctl-linux-arm64.tar.gz`, `clawctl-macos-arm64.tar.gz`, `clawctl-win-amd64.zip` | Standalone bootstrapper archives published in `clawbrowser/clawctl`. Start here. |
 | `clawbrowser-linux-amd64.tar.gz`, `clawbrowser-linux-arm64.tar.gz`, `clawbrowser-macos-arm64.tar.gz` | Browser payload archives. `clawctl install` downloads one automatically. |
 | `clawbrowser-portable-linux-amd64-glibc.tar.gz`, `clawbrowser-portable-linux-arm64-glibc.tar.gz` | Portable Linux runtime with bundled Xvfb, libs, xkb data, and portable browser binary. |
 
@@ -136,5 +136,6 @@ const browser = await puppeteer.connect({ browserURL: 'http://127.0.0.1:9222' })
 - Blog: https://clawbrowser.ai/blog
 - FAQ: https://clawbrowser.ai/faq
 - GitHub: https://github.com/clawbrowser/clawbrowser
-- Releases: https://github.com/clawbrowser/clawbrowser/releases
+- clawctl releases: https://github.com/clawbrowser/clawctl/releases/latest
+- Browser payload releases: https://github.com/clawbrowser/clawbrowser/releases
 - App / Sign up: https://app.clawbrowser.ai

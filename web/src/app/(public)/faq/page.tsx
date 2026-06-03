@@ -54,7 +54,7 @@ const faqs = [
   },
   {
     q: "How do I install Clawbrowser for Claude Code or another AI agent?",
-    a: "Run the install script with the correct target:\n\ncurl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude\n\nTargets: claude (Claude Code / Claude Desktop), codex, gemini, all (Cursor and others).",
+    a: "Start from the standalone clawctl archive in the public clawctl release:\n\nhttps://github.com/clawbrowser/clawctl/releases/latest\n\nAfter extracting it, run clawctl install with the target agent, for example:\n\nclawctl install --agent claude-code --json\n\nTargets include claude-code, claude-desktop, codex, gemini, and all.",
   },
   {
     q: "What happens if my proxy connection fails?",

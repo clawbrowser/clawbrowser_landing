@@ -104,16 +104,20 @@ Before changing anything, run your existing setup against a public fingerprint i
 
 ### Step 2: Install the runtime
 
-For Clawbrowser, the install script handles setup:
+For Clawbrowser, start from the standalone `clawctl` archive in the public
+`clawbrowser/clawctl` release:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- claude
+# Download the matching clawctl-* archive for your OS/arch.
+open https://github.com/clawbrowser/clawctl/releases/latest
 ```
 
-Targets are available for `claude`, `codex`, `gemini`, and `all`. Set your API key:
+After extracting the archive, install the matching agent integration and set
+your API key:
 
 ```bash
-export CLAWBROWSER_API_KEY=clawbrowser_xxxxx
+clawctl install --agent claude-code --json
+clawctl config set --api-key "clawbrowser_xxxxx"
 ```
 
 ### Step 3: Start a managed session with a fingerprint profile

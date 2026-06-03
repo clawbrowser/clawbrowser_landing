@@ -23,30 +23,36 @@ Before starting, confirm:
 
 ## Installation Steps
 
-### 1. Install Clawbrowser
-Use the official install script for this agent:
+### 1. Install clawctl from the public clawctl release
+Read the official install docs first:
 
-curl -fsSL https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/scripts/install.sh | bash -s -- <target>
+https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
 
-Targets: claude, codex, gemini, all.
+Download the standalone clawctl archive for the current OS/arch from:
+
+https://github.com/clawbrowser/clawctl/releases/latest
+
+Do not download the browser archive as the bootstrap path. After extracting the clawctl archive, run:
+
+clawctl install --agent <target> --json
+
+Targets: claude-code, claude-desktop, codex, gemini, all.
 
 ### 2. Set API key
-export CLAWBROWSER_API_KEY=[CLAWBROWSER_API_KEY]
-
-Use this as a temporary environment variable for the current automation run. If the launcher prompts for the key, let it save the key to ~/.config/clawbrowser/config.json.
+clawctl config set --api-key "[CLAWBROWSER_API_KEY]"
 
 ### 3. Start a managed session
-clawbrowser start --session work -- https://example.com
+clawctl start --profile work --url https://example.com --json
 
 ### 4. Read the CDP endpoint
-clawbrowser endpoint --session work
+clawctl endpoint --profile work --json
 
 ### 5. Connect your automation framework
-endpoint = "http://127.0.0.1:9222"  # replace with the endpoint returned by clawbrowser endpoint
+endpoint = "http://127.0.0.1:9222"  # replace with the endpoint returned by clawctl endpoint
 browser = await p.chromium.connect_over_cdp(endpoint)
 
 ## Done
-Confirm Clawbrowser is running and the CDP endpoint returned by the launcher is reachable.
+Confirm Clawbrowser is running and the CDP endpoint returned by clawctl is reachable.
 `;
 
 function CopyIcon() {
