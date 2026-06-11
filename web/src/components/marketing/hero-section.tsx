@@ -1,124 +1,27 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState } from "react";
 
-const BASE = "https://github.com/clawbrowser/clawbrowser/releases/latest/download";
+const agentPrompt = `Install Clawbrowser and clawctl by following the official install guide:
+https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
 
-const ASSETS = {
-  "macos-arm64":  { url: `${BASE}/clawbrowser-macos-arm64.tar.gz`,  label: "macOS (Apple Silicon)", os: "macOS"   },
-  "linux-x64":    { url: `${BASE}/clawbrowser-linux-amd64.tar.gz`,  label: "Linux (x64)",           os: "Linux"   },
-  "linux-arm64":  { url: `${BASE}/clawbrowser-linux-arm64.tar.gz`,  label: "Linux (arm64)",          os: "Linux"   },
-  "windows-x64":  { url: `${BASE}/clawbrowser-win-amd64.zip`,       label: "Windows (x64)",          os: "Windows" },
-} as const;
+Use the documented standalone clawctl installer for this OS. Run clawctl install for your current agent, ask for my API key only if it is not already saved, then start Clawbrowser and verify the browser setup.`;
 
-type AssetKey = keyof typeof ASSETS;
+const agents = [
+  { name: "Claude Code", command: "claude", color: "bg-[#D97757]" },
+  { name: "Codex", command: "codex", color: "bg-emerald-500" },
+  { name: "Cursor", command: "cursor", color: "bg-violet-500" },
+  { name: "Gemini", command: "gemini", color: "bg-blue-500" },
+];
 
-function detectAsset(): AssetKey | null {
-  if (typeof navigator === "undefined") return null;
-  const ua = navigator.userAgent;
-  const plat = navigator.platform ?? "";
-  const isMac     = /Mac/.test(plat) || /Macintosh/.test(ua);
-  const isWindows = /Win/.test(plat) || /Windows/.test(ua);
-  const isLinux   = /Linux/.test(plat) || (/Linux/.test(ua) && !/Android/.test(ua));
-  const isArm     = /arm|aarch64/i.test(ua);
-  if (isMac)     return "macos-arm64";
-  if (isWindows) return "windows-x64";
-  if (isLinux && isArm) return "linux-arm64";
-  if (isLinux)   return "linux-x64";
-  return null;
-}
-
-function DownloadButton() {
-  const [asset, setAsset] = useState<AssetKey | null>(null);
-  useEffect(() => { setAsset(detectAsset()); }, []);
-
-  const info = asset ? ASSETS[asset] : null;
-
-  if (!info) {
-    // Unknown platform — link to releases page
-    return (
-      <a
-        href="https://github.com/clawbrowser/clawbrowser/releases/latest"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-full border border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 px-5 py-2.5 text-sm font-medium text-cyan-700 dark:text-cyan-400 transition-colors hover:bg-cyan-100 dark:hover:bg-cyan-900/40 hover:border-cyan-400 dark:hover:border-cyan-500"
-      >
-        <DownloadIcon />
-        Download
-      </a>
-    );
-  }
-
-  return (
-    <a
-      href={info.url}
-      download
-      className="inline-flex items-center gap-2 rounded-full border border-cyan-300 dark:border-cyan-700 bg-cyan-50 dark:bg-cyan-950/40 px-5 py-2.5 text-sm font-medium text-cyan-700 dark:text-cyan-400 transition-colors hover:bg-cyan-100 dark:hover:bg-cyan-900/40 hover:border-cyan-400 dark:hover:border-cyan-500"
-    >
-      <DownloadIcon />
-      Download for {info.label}
-    </a>
-  );
-}
-
-function DownloadIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+function CopyIcon({ checked = false }: { checked?: boolean }) {
+  return checked ? (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" />
     </svg>
-  );
-}
-
-const agentPrompt = `Install Clawbrowser and clawctl by following the official Clawbrowser install documentation.
-
-Primary docs:
-- https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
-- https://github.com/clawbrowser/clawbrowser
-
-Instructions:
-1. Read INSTALL.md first.
-2. Follow the documented installation flow exactly.
-3. Start from the standalone clawctl archive for the current OS/arch.
-4. Do not download the browser archive manually as the bootstrap path.
-5. Do not download the portable runtime manually unless INSTALL.md explicitly documents that as an offline/pre-extracted runtime path.
-6. Do not use npm, npx, curl-piped installers, or a raw source checkout as the install path.
-7. Run clawctl install so it can install or reuse Clawbrowser and install the portable runtime when needed.
-8. Use the documented target/integration selection from INSTALL.md.
-9. After installation, verify the browser using the verification steps documented in INSTALL.md.
-
-API key:
-- First check \${XDG_CONFIG_HOME:-$HOME/.config}/clawbrowser/config.json.
-- If api_key already exists, do not ask again.
-- If api_key is missing, ask once for the real API key from https://app.clawbrowser.ai.
-- Save it using the documented clawctl config command.
-- Never store the API key in shell rc files, environment variables, MCP config, agent config, project files, or logs.
-
-Expected result:
-- Standalone clawctl is installed and available.
-- clawctl install has completed successfully.
-- Clawbrowser is installed or reused.
-- The portable Linux runtime is installed only when the host requires it.
-- The selected agent integration is configured according to INSTALL.md.
-- clawctl start works.
-- Browser verification passes according to INSTALL.md.
-`;
-
-function CopyIcon() {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      width="13"
-      height="13"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+  ) : (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="9" width="13" height="13" rx="2" />
       <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
     </svg>
   );
@@ -126,93 +29,107 @@ function CopyIcon() {
 
 export function HeroSection() {
   const [copied, setCopied] = useState(false);
+  const [selectedAgent, setSelectedAgent] = useState("Claude Code");
 
-  function copy() {
-    navigator.clipboard.writeText(agentPrompt.trim());
+  async function copy() {
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    try {
+      await navigator.clipboard.writeText(agentPrompt);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = agentPrompt;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      textarea.remove();
+    }
   }
 
   return (
-    <section
-      className="relative w-full overflow-hidden px-6 py-28 text-center md:py-36"
-      aria-labelledby="hero-heading"
-      style={{
-        background:
-          "radial-gradient(ellipse 90% 70% at 50% 48%, rgba(0,183,250,0.13) 0%, transparent 65%), radial-gradient(ellipse 55% 80% at 42% 52%, rgba(0,183,250,0.08) 0%, transparent 60%), radial-gradient(ellipse 70% 50% at 58% 44%, rgba(67,10,240,0.06) 0%, transparent 55%), radial-gradient(ellipse 40% 60% at 53% 56%, rgba(0,183,250,0.06) 0%, transparent 50%)",
-      }}
-    >
-      <div className="relative mx-auto max-w-4xl space-y-7">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 py-1.5 text-xs font-medium text-zinc-500 dark:text-zinc-400 shadow-sm">
-          <span className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
-          Early access — now open
+    <section className="relative overflow-hidden px-5 pb-20 pt-14 sm:px-6 sm:pt-20 md:pb-28 md:pt-28" aria-labelledby="hero-heading">
+      <div className="hero-grid absolute inset-0 opacity-70 dark:opacity-100" aria-hidden="true" />
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[520px] w-[900px] -translate-x-1/2 rounded-full bg-cyan-400/15 blur-[120px] dark:bg-cyan-400/20" aria-hidden="true" />
+
+      <div className="relative mx-auto grid max-w-6xl items-center gap-10 sm:gap-14 lg:grid-cols-[1.04fr_.96fr] lg:gap-16">
+        <div className="text-center lg:text-left">
+          <p className="mb-5 text-sm font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+            A real browser for AI agents
+          </p>
+          <h1 id="hero-heading" className="text-balance text-4xl font-semibold leading-[0.98] tracking-[-0.055em] text-zinc-950 dark:text-white sm:text-6xl lg:text-[4.75rem]">
+            Let your AI do the browser work.
+          </h1>
+          <p className="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-zinc-600 dark:text-slate-300 sm:mt-7 sm:text-lg sm:leading-8 lg:mx-0 lg:max-w-xl">
+            Clawbrowser gives Claude, Codex, Gemini, and your own agents a browser that can research, collect data, test websites, and manage logged-in sessions without constant blocks.
+          </p>
+
+          <div className="mt-9 hidden flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-600 dark:text-slate-300 sm:flex lg:justify-start">
+            {[
+              "Works with your agent",
+              "Keeps logins between runs",
+              "Built-in fingerprints and proxies",
+            ].map((item) => (
+              <span key={item} className="inline-flex items-center gap-2">
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300">✓</span>
+                {item}
+              </span>
+            ))}
+          </div>
         </div>
 
-        <h1
-          id="hero-heading"
-          className="text-4xl font-semibold tracking-tight text-zinc-950 dark:text-zinc-50 md:text-6xl lg:text-[4.5rem]"
-          style={{ letterSpacing: "-1.5px" }}
-        >
-          Browser built for AI agents
-        </h1>
-
-        <p className="mx-auto max-w-2xl text-lg leading-relaxed text-zinc-500 dark:text-zinc-400 md:text-xl">
-          Every browser session gets its own identity — unique fingerprint, real IP, isolated cookies.
-          Your agents and scripts run further without hitting blocks, CAPTCHAs, or account bans.
-        </p>
-
-        {/* Pre-built prompt block */}
-        <div className="relative mx-auto max-w-xl">
-          <div
-            className="absolute -inset-6 -z-10 rounded-3xl blur-3xl"
-            style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(0,183,250,0.28) 0%, rgba(67,10,240,0.10) 55%, transparent 80%)" }}
-          />
-          <div
-            role="button"
-            tabIndex={0}
-            onClick={copy}
-            onKeyDown={(e) => e.key === "Enter" && copy()}
-            className="group flex cursor-pointer flex-col items-center gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-6 py-6 shadow-md transition-shadow hover:shadow-lg active:scale-[0.99]"
-          >
-            <div className="flex w-full items-center justify-center gap-2.5 rounded-full bg-zinc-950 px-8 py-4 text-base font-semibold text-white transition-all group-hover:bg-zinc-800 group-hover:shadow-[0_0_24px_rgba(0,183,250,0.35)] dark:group-hover:shadow-[0_0_28px_rgba(0,183,250,0.25)]">
-              <CopyIcon />
-              {copied ? "Copied!" : "Copy prompt"}
+        <div id="install" className="relative mx-auto w-full max-w-xl">
+          <div className="absolute -inset-5 rounded-[2rem] bg-gradient-to-br from-cyan-400/25 via-blue-500/10 to-violet-500/20 blur-2xl" aria-hidden="true" />
+          <div className="relative overflow-hidden rounded-[1.75rem] border border-zinc-200 bg-white shadow-2xl shadow-cyan-950/10 dark:border-slate-700 dark:bg-[#0b1118] dark:shadow-cyan-950/40">
+            <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-4 dark:border-slate-700">
+              <div>
+                <p className="text-sm font-semibold text-zinc-950 dark:text-white">Install with your AI agent</p>
+                <p className="mt-0.5 text-xs text-zinc-500 dark:text-slate-400">No terminal walkthrough required</p>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300">2 minutes</span>
             </div>
-            <div className="text-center">
-              <p className="text-sm font-medium text-zinc-700 dark:text-zinc-300">Let your agent install Clawbrowser</p>
-              <p className="mt-0.5 text-xs font-semibold uppercase tracking-wider text-zinc-400 dark:text-zinc-500">Pre-built prompt</p>
+
+            <div className="p-5 sm:p-6">
+              <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-5 text-zinc-600 dark:border-slate-700 dark:bg-[#070b10] dark:text-slate-300">
+                <span className="text-cyan-700 dark:text-cyan-300">Install Clawbrowser and clawctl</span> by following the official install guide. Use the installer for this OS, connect it to my agent, then start and verify the browser...
+              </div>
+              <button type="button" onClick={copy} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 text-base font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500">
+                <CopyIcon checked={copied} />
+                {copied ? "Prompt copied" : "Copy install prompt"}
+              </button>
+
+              <div className={`grid transition-all duration-500 ${copied ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} aria-hidden={!copied}>
+                <div className="overflow-hidden">
+                  <div className="border-t border-zinc-200 pt-5 dark:border-slate-700">
+                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">Now paste it into your agent</p>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      {agents.map((agent) => (
+                        <button key={agent.name} type="button" onClick={() => setSelectedAgent(agent.name)} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${selectedAgent === agent.name ? "border-cyan-400 bg-cyan-50 text-zinc-950 dark:border-cyan-300 dark:bg-cyan-300 dark:text-slate-950" : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500"}`}>
+                          <span className={`h-2.5 w-2.5 rounded-full ${agent.color}`} />
+                          {agent.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div key={selectedAgent} className="mt-3 rounded-xl bg-zinc-950 px-4 py-3 font-mono text-xs text-zinc-300 dark:bg-black">
+                      <div className="flex items-center gap-3">
+                        <span className="text-cyan-400">$</span>
+                        <span>{agents.find((agent) => agent.name === selectedAgent)?.command}</span>
+                        <span className="install-cursor h-4 w-1.5 bg-cyan-300" />
+                      </div>
+                      <div className="agent-paste mt-2 flex gap-3 border-t border-white/10 pt-2 text-slate-400">
+                        <span className="text-violet-400">›</span>
+                        <span className="truncate">Install Clawbrowser and clawctl by following...</span>
+                        <span className="ml-auto text-emerald-400">pasted</span>
+                      </div>
+                    </div>
+                    <a href="https://discord.gg/mVWydaDK2N" target="_blank" rel="noopener noreferrer" className="mt-4 block text-center text-sm font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 dark:text-slate-400 dark:decoration-slate-600 dark:hover:text-white">
+                      Need help? Join the Discord
+                    </a>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3">
-          <DownloadButton />
-          <Button size="lg" variant="outline" href="/docs">Documentation</Button>
-          <a
-            href="https://github.com/clawbrowser/clawbrowser"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="GitHub"
-            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 transition-colors hover:border-zinc-300 dark:hover:border-zinc-600 hover:text-zinc-950 dark:hover:text-zinc-100"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12" />
-            </svg>
-          </a>
-          <a
-            href="https://discord.gg/mVWydaDK2N"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Discord community"
-            className="inline-flex h-11 items-center gap-2 rounded-full border border-[#5865F2]/30 bg-[#5865F2]/10 px-4 text-sm font-medium text-[#5865F2] transition-colors hover:bg-[#5865F2]/15 hover:border-[#5865F2]/50 dark:border-[#5865F2]/40 dark:bg-[#5865F2]/15 dark:text-[#A5B0FF] dark:hover:bg-[#5865F2]/25"
-          >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M20.317 4.369a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.078.037c-.211.375-.444.864-.608 1.249a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.249.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.056 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.105 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128c.126-.094.252-.192.372-.291a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.009c.12.099.246.198.373.292a.077.077 0 0 1-.006.128 12.298 12.298 0 0 1-1.873.891.077.077 0 0 0-.041.106c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.84 19.84 0 0 0 6.002-3.03.077.077 0 0 0 .032-.055c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.331c-1.182 0-2.157-1.085-2.157-2.419 0-1.333.956-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.956 2.419-2.157 2.419zm7.974 0c-1.181 0-2.157-1.085-2.157-2.419 0-1.333.957-2.418 2.157-2.418 1.21 0 2.176 1.094 2.157 2.418 0 1.334-.946 2.419-2.157 2.419z" />
-            </svg>
-            Discord
-          </a>
         </div>
       </div>
     </section>

@@ -1,20 +1,18 @@
 import type { Metadata } from "next";
-import { AskAiSection } from "@/components/marketing/ask-ai-section";
 import { BenefitsSection } from "@/components/marketing/benefits-section";
 import { FeaturesSection } from "@/components/marketing/features-section";
 import { HeroSection } from "@/components/marketing/hero-section";
-import { ProblemSolutionSection } from "@/components/marketing/problem-solution";
-import { RoadmapSection } from "@/components/marketing/roadmap-section";
+import { ProductDemoSection } from "@/components/marketing/product-demo-section";
 import { UseCasesSection } from "@/components/marketing/use-cases-section";
 import { WebsiteJsonLd } from "@/components/seo/json-ld";
 
 export const metadata: Metadata = {
-  title: { absolute: "Clawbrowser — Browser built for AI agents" },
-  description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies. AI agents and scripts run further without hitting blocks or CAPTCHAs.",
+  title: { absolute: "Clawbrowser — Let your AI do the browser work" },
+  description: "Give Claude, Codex, Gemini, and your own AI agents a real browser for research, data collection, website testing, and persistent logged-in workflows.",
   alternates: { canonical: "https://clawbrowser.ai" },
   openGraph: {
-    title: "Clawbrowser — Browser built for AI agents",
-    description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies. AI agents and scripts run further without hitting blocks or CAPTCHAs.",
+    title: "Clawbrowser — Let your AI do the browser work",
+    description: "A real browser for AI agents to research, collect data, test websites, and run logged-in workflows.",
     url: "https://clawbrowser.ai",
     siteName: "Clawbrowser",
     type: "website",
@@ -22,8 +20,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary",
-    title: "Clawbrowser — Browser built for AI agents",
-    description: "Clawbrowser gives every browser session its own identity — unique fingerprint, real IP, isolated cookies.",
+    title: "Clawbrowser — Let your AI do the browser work",
+    description: "A real browser for AI agents to research, collect data, test websites, and run logged-in workflows.",
     images: ["https://clawbrowser.ai/side-bite.svg"],
   },
 };
@@ -33,12 +31,10 @@ export default function HomePage() {
     <div className="flex flex-col">
       <WebsiteJsonLd />
       <HeroSection />
-      <ProblemSolutionSection />
+      <ProductDemoSection />
+      <UseCasesSection />
       <FeaturesSection />
       <BenefitsSection />
-      <UseCasesSection />
-      <RoadmapSection />
-      <AskAiSection />
     </div>
   );
 }
