@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { USE_CASES } from "@/lib/use-cases";
 
 const featuredUseCases = [
   {
@@ -62,7 +61,7 @@ export function UseCasesSection() {
             One browser, a few jobs people actually care about.
           </h2>
           <p className="mt-5 max-w-2xl text-lg leading-8 text-zinc-600 dark:text-slate-300">
-            Instead of a wall of category cards, show the reader the result first. Then let them click into the deeper use-case pages only if they want the full walkthrough.
+            Clawbrowser handles the browser identity layer so your agent can finish the job. Use it for prospect research, price monitoring, QA, and other workflows where ordinary automation gets blocked.
           </p>
         </div>
 

@@ -1,7 +1,3 @@
-"use client";
-
-import { useState } from "react";
-
 const features = [
   {
     icon: (
@@ -70,34 +66,16 @@ const features = [
 ];
 
 function FeatureCard({ icon, title, short, detail }: (typeof features)[0]) {
-  const [open, setOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-4 rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
+    <div className="flex h-full flex-col gap-4 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm transition-transform hover:-translate-y-0.5 dark:border-zinc-800 dark:bg-zinc-900">
       <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 text-cyan-600 dark:text-cyan-400">
         {icon}
       </div>
-      <div>
+      <div className="space-y-2">
         <h3 className="mb-2 text-sm font-semibold text-zinc-950 dark:text-zinc-50">{title}</h3>
         <p className="text-sm leading-relaxed text-zinc-500 dark:text-zinc-400">{short}</p>
-        {open && (
-          <p className="mt-2 text-sm leading-relaxed text-zinc-400 dark:text-zinc-500">{detail}</p>
-        )}
+        <p className="text-sm leading-relaxed text-zinc-400 dark:text-zinc-500">{detail}</p>
       </div>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="mt-auto inline-flex items-center gap-1 text-xs font-medium text-zinc-400 dark:text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300 transition-colors cursor-pointer w-fit"
-      >
-        {open ? "Show less" : "Show more"}
-        <svg
-          width="12" height="12" viewBox="0 0 12 12" fill="none"
-          stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-          aria-hidden="true"
-          className={`transition-transform ${open ? "rotate-180" : ""}`}
-        >
-          <path d="M2 4l4 4 4-4" />
-        </svg>
-      </button>
     </div>
   );
 }

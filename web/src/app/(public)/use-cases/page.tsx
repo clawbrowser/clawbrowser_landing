@@ -4,7 +4,7 @@ import { USE_CASES } from "@/lib/use-cases";
 import { UseCaseCTA } from "@/components/use-cases/use-case-cta";
 
 export const metadata: Metadata = {
-  title: "Use Cases — Clawbrowser",
+  title: "Use Cases",
   description:
     "See how teams use Clawbrowser for AI agent automation, web scraping, multi-account management, lead generation, price monitoring, SEO research, ad intelligence, social media, e-commerce, and developer testing.",
   alternates: { canonical: "https://clawbrowser.ai/use-cases" },

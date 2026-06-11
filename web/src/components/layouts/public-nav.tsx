@@ -14,6 +14,24 @@ const navLink =
 
 const sections: { label: string; hash: string }[] = [];
 
+const builderUseCases = ["ai-agent-automation", "developer-testing"];
+const operationsUseCases = [
+  "web-scraping",
+  "lead-generation",
+  "price-monitoring",
+  "multi-account-management",
+  "social-media",
+  "ecommerce-ops",
+];
+
+const builderItems = builderUseCases
+  .map((slug) => USE_CASES.find((uc) => uc.slug === slug))
+  .filter((uc): uc is (typeof USE_CASES)[number] => Boolean(uc));
+
+const operationsItems = operationsUseCases
+  .map((slug) => USE_CASES.find((uc) => uc.slug === slug))
+  .filter((uc): uc is (typeof USE_CASES)[number] => Boolean(uc));
+
 function NavAnchor({
   hash,
   children,
@@ -65,7 +83,7 @@ function UseCasesDropdown() {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className={`${navLink} inline-flex items-center gap-1`}
+        className={`${navLink} inline-flex items-center gap-1 underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/70`}
         aria-expanded={open}
         aria-haspopup="true"
       >
@@ -87,17 +105,49 @@ function UseCasesDropdown() {
       </button>
 
       {open && (
-        <div className="absolute left-0 top-full mt-2 w-auto min-w-[200px] rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 py-1.5 shadow-lg ring-1 ring-black/5 dark:ring-white/5 z-50">
-          {USE_CASES.map((uc) => (
-            <Link
-              key={uc.slug}
-              href={`/use-cases/${uc.slug}`}
-              onClick={() => setOpen(false)}
-              className="block px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-50 dark:hover:bg-zinc-800 hover:text-zinc-950 dark:hover:text-zinc-50 transition-colors whitespace-nowrap"
-            >
-              {uc.shortTitle}
-            </Link>
-          ))}
+        <div className="absolute left-0 top-full z-50 mt-2 w-[34rem] max-w-[calc(100vw-2rem)] rounded-2xl border border-zinc-200 bg-white p-2 shadow-lg ring-1 ring-black/5 dark:border-zinc-800 dark:bg-zinc-900 dark:ring-white/5">
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-xl border border-zinc-100 p-2 dark:border-zinc-800">
+              <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                Builders
+              </p>
+              {builderItems.map((uc) => (
+                <Link
+                  key={uc.slug}
+                  href={`/use-cases/${uc.slug}`}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-zinc-50 hover:text-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                >
+                  <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">{uc.shortTitle}</span>
+                  <span className="mt-1 block text-xs leading-5 text-zinc-500 dark:text-zinc-400">{uc.tagline}</span>
+                </Link>
+              ))}
+            </div>
+            <div className="rounded-xl border border-zinc-100 p-2 dark:border-zinc-800">
+              <p className="px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                Operations
+              </p>
+              {operationsItems.map((uc) => (
+                <Link
+                  key={uc.slug}
+                  href={`/use-cases/${uc.slug}`}
+                  onClick={() => setOpen(false)}
+                  className="block rounded-xl px-3 py-2.5 transition-colors hover:bg-zinc-50 hover:text-zinc-950 dark:hover:bg-zinc-800 dark:hover:text-zinc-50"
+                >
+                  <span className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">{uc.shortTitle}</span>
+                  <span className="mt-1 block text-xs leading-5 text-zinc-500 dark:text-zinc-400">{uc.tagline}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+          <Link
+            href="/use-cases/"
+            onClick={() => setOpen(false)}
+            className="mt-2 flex items-center justify-between rounded-xl px-3 py-3 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-400/10"
+          >
+            Browse all use cases
+            <span aria-hidden="true">→</span>
+          </Link>
         </div>
       )}
     </div>
@@ -231,17 +281,44 @@ export function PublicNav() {
                   </svg>
                 </button>
                 {useCasesOpen && (
-                  <div className="ml-3 mt-1 flex flex-col gap-0.5 border-l border-zinc-200 dark:border-zinc-700 pl-3">
-                    {USE_CASES.map((uc) => (
-                      <Link
-                        key={uc.slug}
-                        href={`/use-cases/${uc.slug}`}
-                        onClick={() => { setOpen(false); setUseCasesOpen(false); }}
-                        className="block rounded-lg px-3 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:bg-zinc-50 dark:hover:bg-zinc-900 hover:text-zinc-900 dark:hover:text-zinc-100 transition-colors"
-                      >
-                        {uc.shortTitle}
-                      </Link>
-                    ))}
+                  <div className="ml-3 mt-1 space-y-3 border-l border-zinc-200 pl-3 dark:border-zinc-700">
+                    <div>
+                      <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                        Builders
+                      </p>
+                      {builderItems.map((uc) => (
+                        <Link
+                          key={uc.slug}
+                          href={`/use-cases/${uc.slug}`}
+                          onClick={() => { setOpen(false); setUseCasesOpen(false); }}
+                          className="block rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                        >
+                          {uc.shortTitle}
+                        </Link>
+                      ))}
+                    </div>
+                    <div>
+                      <p className="px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-zinc-500">
+                        Operations
+                      </p>
+                      {operationsItems.map((uc) => (
+                        <Link
+                          key={uc.slug}
+                          href={`/use-cases/${uc.slug}`}
+                          onClick={() => { setOpen(false); setUseCasesOpen(false); }}
+                          className="block rounded-lg px-3 py-2 text-sm text-zinc-600 transition-colors hover:bg-zinc-50 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-900 dark:hover:text-zinc-100"
+                        >
+                          {uc.shortTitle}
+                        </Link>
+                      ))}
+                    </div>
+                    <Link
+                      href="/use-cases/"
+                      onClick={() => { setOpen(false); setUseCasesOpen(false); }}
+                      className="block rounded-lg px-3 py-2 text-sm font-medium text-cyan-700 transition-colors hover:bg-cyan-50 dark:text-cyan-300 dark:hover:bg-cyan-400/10"
+                    >
+                      Browse all use cases
+                    </Link>
                   </div>
                 )}
               </div>
