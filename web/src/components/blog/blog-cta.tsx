@@ -3,57 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { APP_SIGNUP_URL } from "@/lib/links";
+import { INSTALL_AGENT_PROMPT } from "@/lib/install-agent-prompt";
 
-const agentPrompt = `# Task: Install and Deploy Clawbrowser
-
-You are an AI agent. Your task is to install and configure Clawbrowser on the target system so it is ready for browser automation.
-
-## What is Clawbrowser?
-Clawbrowser is a Chromium-based browser built for automation that provides:
-- Managed browser sessions with reusable browser state
-- Browser fingerprint profiles with profile-bound residential/datacenter proxy routing
-- Standard Chrome DevTools Protocol (CDP) interface
-
-## Prerequisites
-Before starting, confirm:
-- Operating system: [TARGET_OS] (macOS or Linux)
-- Architecture: [ARCH] (e.g., x86_64, arm64)
-- Clawbrowser API key: [CLAWBROWSER_API_KEY] - obtain one at https://app.clawbrowser.ai
-- Internet access available: yes/no
-
-## Installation Steps
-
-### 1. Install clawctl from the public clawctl release
-Read the official install docs first:
-
-https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
-
-Download the standalone clawctl archive for the current OS/arch from:
-
-https://github.com/clawbrowser/clawctl/releases/latest
-
-Do not download the browser archive as the bootstrap path. After extracting the clawctl archive, run:
-
-clawctl install --agent <target> --json
-
-Targets: claude-code, claude-desktop, codex, gemini, all.
-
-### 2. Set API key
-clawctl config set --api-key "[CLAWBROWSER_API_KEY]"
-
-### 3. Start a managed session
-clawctl start --profile work --url https://example.com --json
-
-### 4. Read the CDP endpoint
-clawctl endpoint --profile work --json
-
-### 5. Connect your automation framework
-endpoint = "http://127.0.0.1:9222"  # replace with the endpoint returned by clawctl endpoint
-browser = await p.chromium.connect_over_cdp(endpoint)
-
-## Done
-Confirm Clawbrowser is running and the CDP endpoint returned by clawctl is reachable.
-`;
+const agentPrompt = INSTALL_AGENT_PROMPT;
 
 function CopyIcon() {
   return (

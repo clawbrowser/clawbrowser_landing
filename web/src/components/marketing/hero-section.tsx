@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { INSTALL_AGENT_PROMPT } from "@/lib/install-agent-prompt";
 
-const agentPrompt = `Install Clawbrowser and clawctl by following the official install guide:
-https://raw.githubusercontent.com/clawbrowser/clawbrowser/main/INSTALL.md
-
-Use the documented standalone clawctl installer for this OS. Run clawctl install for your current agent, ask for my API key only if it is not already saved, then start Clawbrowser and verify the browser setup.`;
+const agentPrompt = INSTALL_AGENT_PROMPT;
 
 const agents = [
   { name: "Claude Code", command: "claude", color: "bg-[#D97757]" },
