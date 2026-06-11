@@ -34,9 +34,9 @@ describe("marketing home sections", () => {
 
   it("shows the full use-case catalog without carousel controls", () => {
     render(<UseCasesSection />);
-    expect(screen.getByRole("heading", { level: 3, name: /ai agent automation/i })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 3, name: /developer testing/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /previous/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: /one browser, a few jobs people actually care about/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 3, name: /turn prospect research into a ready-to-send list/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /see all use cases/i })).toHaveAttribute("href", "/use-cases");
   });
 
   it("explains the technical layer after the examples", () => {
