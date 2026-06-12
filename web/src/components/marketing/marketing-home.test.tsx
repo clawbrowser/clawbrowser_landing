@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { HeroSection } from "./hero-section";
 import { ProductDemoSection } from "./product-demo-section";
 import { UseCasesSection } from "./use-cases-section";
@@ -22,7 +22,11 @@ describe("marketing home sections", () => {
     fireEvent.click(screen.getByRole("button", { name: /copy install prompt/i }));
 
     expect(writeText).toHaveBeenCalledOnce();
-    expect(await screen.findByText(/paste into your agent/i)).toBeInTheDocument();
+    const pasteStep = await screen.findByText(/paste into your agent/i);
+    const pasteCard = pasteStep.closest("div.rounded-2xl");
+    expect(pasteCard).not.toBeNull();
+    expect(within(pasteCard as HTMLElement).getByText(/^codex$/i)).toBeInTheDocument();
+    expect(within(pasteCard as HTMLElement).getByText(/^claude code$/i)).toBeInTheDocument();
     expect(screen.getByText(/generate api key/i)).toBeInTheDocument();
     expect(screen.getByText(/give the key to your agent/i)).toBeInTheDocument();
   });

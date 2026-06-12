@@ -6,24 +6,29 @@ import { INSTALL_AGENT_PROMPT } from "@/lib/install-agent-prompt";
 
 const agentPrompt = INSTALL_AGENT_PROMPT;
 
-const supportedAgents = ["Claude Code", "Codex", "Gemini", "Cursor", "Windsurf"];
+const agentRail = [
+  { name: "Codex", accent: "bg-emerald-500" },
+  { name: "Claude Code", accent: "bg-orange-400" },
+  { name: "Hermes", accent: "bg-violet-500" },
+  { name: "OpenClaw", accent: "bg-cyan-500" },
+] as const;
 
 const onboardingSteps = [
   {
     title: "Paste into your agent",
-    detail: "Any supported coding agent can run the setup flow for you.",
+    detail: "",
   },
   {
     title: "Sign up for Clawbrowser",
-    detail: "Create an account so the agent has somewhere to fetch your API key from.",
+    detail: "",
   },
   {
     title: "Generate API key",
-    detail: "Create a fresh key in the dashboard after signup.",
+    detail: "In the dashboard.",
   },
   {
     title: "Give the key to your agent",
-    detail: "The agent finishes setup, verifies the browser, and you are ready to run.",
+    detail: "Finish setup and verify the browser.",
   },
 ] as const;
 
@@ -105,84 +110,67 @@ export function HeroSection() {
               <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4 font-mono text-xs leading-5 text-zinc-600 dark:border-slate-700 dark:bg-[#070b10] dark:text-slate-300">
                 <span className="text-cyan-700 dark:text-cyan-300">Install Clawbrowser and clawctl</span> by following the official install guide. Use the installer for this OS, connect it to my agent, then start and verify the browser...
               </div>
-              <button type="button" onClick={copy} className="mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 text-base font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500">
+              <button
+                type="button"
+                onClick={copy}
+                className={`mt-4 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl px-5 text-base font-bold transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 ${
+                  copied
+                    ? "border border-emerald-200 bg-emerald-50 text-emerald-700 shadow-sm dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300"
+                    : "bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 hover:bg-cyan-400"
+                }`}
+              >
                 <CopyIcon checked={copied} />
                 {copied ? "Prompt copied" : "Copy install prompt"}
               </button>
 
               <div className={`grid transition-all duration-500 ${copied ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} aria-hidden={!copied}>
                 <div className="overflow-hidden">
-                  <div className="pt-5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 text-sm font-bold text-emerald-700 shadow-sm dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
-                        ✓
-                      </div>
-                      <div className="flex-1">
-                        <p className="text-sm font-semibold text-zinc-900 dark:text-white">Prompt copied</p>
-                        <div className="mt-2 h-px bg-gradient-to-r from-emerald-400 via-cyan-300 to-cyan-200 dark:from-emerald-400 dark:via-cyan-400 dark:to-slate-700" />
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-4">
+                  <div className="pt-4">
+                    <div className="mt-1 space-y-4">
                       {onboardingSteps.map((step, index) => {
                         const isPasteStep = index === 0;
                         const isSignupStep = index === 1;
-                        const isFinalStep = index === onboardingSteps.length - 1;
 
                         return (
-                          <div key={step.title} className="relative grid grid-cols-[2rem_1fr] items-center gap-4">
+                          <div key={step.title} className="relative grid grid-cols-[3rem_1fr] items-center gap-4">
                             {index !== onboardingSteps.length - 1 && (
-                              <div className="absolute left-4 top-1/2 h-[calc(100%+1rem)] w-px -translate-x-1/2 bg-zinc-200 dark:bg-slate-700" />
+                              <div className="absolute left-6 top-1/2 h-[calc(100%+1rem)] w-px -translate-x-1/2 bg-zinc-200 dark:bg-slate-700" />
                             )}
 
-                            <div className="relative z-10 flex h-8 w-8 items-center justify-center self-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                            <div className="relative z-10 flex h-8 w-8 items-center justify-center self-center justify-self-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                               {index + 2}
                             </div>
 
                             <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-slate-700 dark:bg-[#101821]">
                               <div className="flex flex-wrap items-center gap-2 gap-y-3">
                                 <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
-
-                                {isPasteStep && (
-                                  <div className="group relative">
-                                    <button
-                                      type="button"
-                                      className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300 dark:hover:text-white"
+                              </div>
+                              {isPasteStep ? (
+                                <div className="mt-3 flex flex-wrap gap-2">
+                                  {agentRail.map((agent) => (
+                                    <span
+                                      key={agent.name}
+                                      className="inline-flex cursor-default items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-medium text-zinc-600 transition-transform duration-200 hover:scale-105 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300"
                                     >
-                                      Supported agents
-                                    </button>
-                                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white p-3 text-left opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-[#0b1118]">
-                                      <div className="flex flex-wrap gap-2">
-                                        {supportedAgents.map((agent) => (
-                                          <span
-                                            key={agent}
-                                            className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300"
-                                          >
-                                            {agent}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    </div>
-                                  </div>
-                                )}
-
-                                {isSignupStep && (
+                                      <span className={`h-2.5 w-2.5 rounded-full ${agent.accent}`} />
+                                      {agent.name}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : step.detail ? (
+                                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
+                              ) : null}
+                              {isSignupStep && (
+                                <div className="mt-3">
                                   <a
                                     href={APP_SIGNUP_URL}
-                                    className="inline-flex min-h-9 items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-sm shadow-cyan-500/20 transition hover:bg-cyan-400 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-zinc-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
                                   >
                                     Sign up
                                     <span aria-hidden="true">→</span>
                                   </a>
-                                )}
-
-                                {isFinalStep && (
-                                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
-                                    Verified
-                                  </span>
-                                )}
-                              </div>
-                              <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         );
