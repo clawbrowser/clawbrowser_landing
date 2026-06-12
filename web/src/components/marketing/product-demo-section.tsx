@@ -52,16 +52,16 @@ export function ProductDemoSection() {
                 ))}
               </div>
               <svg
-                className="demo-pointer absolute left-[22%] top-[34%] h-6 w-6"
-                viewBox="0 0 24 24"
+                className="demo-pointer absolute left-[-8%] top-[28%] h-7 w-7"
+                viewBox="0 0 20 24"
                 fill="none"
                 aria-hidden="true"
               >
                 <path
-                  d="M5 3.5L18 15.5L12.6 15.8L15.3 21L12.3 22.5L9.6 17.2L6.2 21.2L5 3.5Z"
+                  d="M3.2 2.2L16.9 14.4L10.9 14.9L14.5 22L11.7 23.4L8.2 16.4L4.1 21L3.2 2.2Z"
                   fill="#111827"
                   stroke="#ffffff"
-                  strokeWidth="1.8"
+                  strokeWidth="1.7"
                   strokeLinejoin="round"
                 />
               </svg>
