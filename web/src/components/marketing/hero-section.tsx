@@ -83,7 +83,6 @@ export function HeroSection() {
 
           <div className="mt-9 hidden flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-zinc-600 dark:text-slate-300 sm:flex lg:justify-start">
             {[
-              "Works with your agent",
               "Keeps logins between runs",
               "Built-in fingerprints and proxies",
             ].map((item) => (
