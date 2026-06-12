@@ -28,6 +28,24 @@ const featuredUseCases = [
 ];
 
 function WorkflowPreview() {
+  const rows = [
+    {
+      step: "01",
+      title: "Search target accounts",
+      detail: "5 matches found",
+    },
+    {
+      step: "02",
+      title: "Verify role and email",
+      detail: "2 verified contacts",
+    },
+    {
+      step: "03",
+      title: "Prepare CRM export",
+      detail: "CSV ready to send",
+    },
+  ] as const;
+
   return (
     <div
       aria-hidden="true"
@@ -52,24 +70,21 @@ function WorkflowPreview() {
         <div className="workflow-glow absolute inset-y-0 left-0 w-24 rounded-full bg-cyan-300/20 blur-2xl dark:bg-cyan-300/10" />
 
         <div className="relative space-y-3">
-          {[
-            { label: "Company page", status: "Role verified", width: "w-[88%]" },
-            { label: "LinkedIn lookup", status: "Contact found", width: "w-[72%]" },
-            { label: "CRM enrichment", status: "Export ready", width: "w-[80%]" },
-          ].map((step, index) => (
+          {rows.map((step, index) => (
             <div
-              key={step.label}
+              key={step.title}
               className={`workflow-row flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-3 py-3 shadow-sm dark:border-slate-700 dark:bg-[#111c27] workflow-delay-${index + 1}`}
             >
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300">
-                {index + 1}
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-[11px] font-semibold text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300">
+                {step.step}
               </span>
               <div className="min-w-0 flex-1">
-                <div className={`h-2.5 rounded-full bg-zinc-900/85 dark:bg-white/90 ${step.width}`} />
-                <div className="mt-2 h-2 w-[56%] rounded-full bg-zinc-200 dark:bg-slate-700" />
+                <p className="text-sm font-medium text-zinc-900 dark:text-white">{step.title}</p>
+                <p className="mt-1 text-xs text-zinc-500 dark:text-slate-400">{step.detail}</p>
               </div>
-              <span className="hidden rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300 sm:inline-flex">
-                {step.status}
+              <span className="hidden h-2.5 w-2.5 rounded-full bg-emerald-400 sm:inline-flex" />
+              <span className="hidden text-[11px] font-medium text-emerald-700 dark:text-emerald-300 sm:inline-flex">
+                Done
               </span>
             </div>
           ))}
@@ -135,7 +150,7 @@ export function UseCasesSection() {
               <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-slate-300">{featuredUseCases[0].description}</p>
             </div>
             <WorkflowPreview />
-            <div className="mt-auto border-t border-zinc-200 pt-5 dark:border-slate-700">
+            <div className="mt-auto pt-5">
               <p className="text-sm font-semibold text-zinc-950 dark:text-white">{featuredUseCases[0].outcome}</p>
               <span className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300">
                 Read the workflow
