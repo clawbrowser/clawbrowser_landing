@@ -114,10 +114,13 @@ export function HeroSection() {
                 <div className="overflow-hidden">
                   <div className="pt-5">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white shadow-sm">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-emerald-300 bg-emerald-50 text-sm font-bold text-emerald-700 shadow-sm dark:border-emerald-400/30 dark:bg-emerald-400/10 dark:text-emerald-300">
                         ✓
                       </div>
-                      <div className="h-px flex-1 bg-gradient-to-r from-emerald-400 via-cyan-300 to-cyan-200 dark:from-emerald-400 dark:via-cyan-400 dark:to-slate-700" />
+                      <div className="flex-1">
+                        <p className="text-sm font-semibold text-zinc-900 dark:text-white">Prompt copied</p>
+                        <div className="mt-2 h-px bg-gradient-to-r from-emerald-400 via-cyan-300 to-cyan-200 dark:from-emerald-400 dark:via-cyan-400 dark:to-slate-700" />
+                      </div>
                     </div>
 
                     <div className="mt-4 space-y-4">
@@ -127,17 +130,17 @@ export function HeroSection() {
                         const isFinalStep = index === onboardingSteps.length - 1;
 
                         return (
-                          <div key={step.title} className="relative pl-10">
+                          <div key={step.title} className="relative grid grid-cols-[2rem_1fr] items-center gap-4">
                             {index !== onboardingSteps.length - 1 && (
-                              <div className="absolute left-[15px] top-8 h-[calc(100%+0.75rem)] w-px bg-zinc-200 dark:bg-slate-700" />
+                              <div className="absolute left-4 top-1/2 h-[calc(100%+1rem)] w-px -translate-x-1/2 bg-zinc-200 dark:bg-slate-700" />
                             )}
 
-                            <div className="absolute left-0 top-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                            <div className="relative z-10 flex h-8 w-8 items-center justify-center self-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
                               {index + 2}
                             </div>
 
                             <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-slate-700 dark:bg-[#101821]">
-                              <div className="flex flex-wrap items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2 gap-y-3">
                                 <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
 
                                 {isPasteStep && (
@@ -166,9 +169,10 @@ export function HeroSection() {
                                 {isSignupStep && (
                                   <a
                                     href={APP_SIGNUP_URL}
-                                    className="inline-flex items-center rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
+                                    className="inline-flex min-h-9 items-center gap-2 rounded-full bg-cyan-500 px-4 py-2 text-xs font-semibold text-slate-950 shadow-sm shadow-cyan-500/20 transition hover:bg-cyan-400 dark:bg-cyan-400 dark:text-slate-950 dark:hover:bg-cyan-300"
                                   >
                                     Sign up
+                                    <span aria-hidden="true">→</span>
                                   </a>
                                 )}
 
