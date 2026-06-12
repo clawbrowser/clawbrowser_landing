@@ -27,6 +27,58 @@ const featuredUseCases = [
   },
 ];
 
+function WorkflowPreview() {
+  return (
+    <div
+      aria-hidden="true"
+      className="mt-8 overflow-hidden rounded-[1.5rem] border border-zinc-200/80 bg-zinc-50/90 p-4 dark:border-slate-700/80 dark:bg-[#0b1118]"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-slate-500">
+            Live workflow preview
+          </p>
+          <p className="mt-1 text-sm font-medium text-zinc-700 dark:text-slate-200">
+            Search, verify, enrich, export
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+          Running
+        </span>
+      </div>
+
+      <div className="relative mt-4 overflow-hidden rounded-[1.25rem] border border-white/70 bg-white/90 p-4 shadow-sm dark:border-slate-700 dark:bg-[#0f1720]">
+        <div className="workflow-glow absolute inset-y-0 left-0 w-24 rounded-full bg-cyan-300/20 blur-2xl dark:bg-cyan-300/10" />
+
+        <div className="relative space-y-3">
+          {[
+            { label: "Company page", status: "Role verified", width: "w-[88%]" },
+            { label: "LinkedIn lookup", status: "Contact found", width: "w-[72%]" },
+            { label: "CRM enrichment", status: "Export ready", width: "w-[80%]" },
+          ].map((step, index) => (
+            <div
+              key={step.label}
+              className={`workflow-row flex items-center gap-3 rounded-2xl border border-zinc-200/80 bg-white px-3 py-3 shadow-sm dark:border-slate-700 dark:bg-[#111c27] workflow-delay-${index + 1}`}
+            >
+              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300">
+                {index + 1}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className={`h-2.5 rounded-full bg-zinc-900/85 dark:bg-white/90 ${step.width}`} />
+                <div className="mt-2 h-2 w-[56%] rounded-full bg-zinc-200 dark:bg-slate-700" />
+              </div>
+              <span className="hidden rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-300 sm:inline-flex">
+                {step.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function UseCaseIcon({ slug }: { slug: string }) {
   switch (slug) {
     case "lead-generation":
@@ -82,6 +134,7 @@ export function UseCasesSection() {
               <h3 className="text-3xl font-semibold tracking-tight text-zinc-950 dark:text-white">{featuredUseCases[0].title}</h3>
               <p className="mt-4 text-base leading-7 text-zinc-600 dark:text-slate-300">{featuredUseCases[0].description}</p>
             </div>
+            <WorkflowPreview />
             <div className="mt-auto border-t border-zinc-200 pt-5 dark:border-slate-700">
               <p className="text-sm font-semibold text-zinc-950 dark:text-white">{featuredUseCases[0].outcome}</p>
               <span className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-cyan-700 dark:text-cyan-300">

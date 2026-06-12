@@ -81,10 +81,28 @@ body {
   to { transform: rotate(360deg); }
 }
 
+@keyframes workflow-sweep {
+  0% { transform: translateX(-160%); opacity: 0; }
+  18% { opacity: .8; }
+  55% { opacity: .55; }
+  100% { transform: translateX(520%); opacity: 0; }
+}
+
+@keyframes workflow-row-pulse {
+  0%, 100% { transform: translateY(0); border-color: rgba(228, 228, 231, .8); }
+  30% { transform: translateY(-1px); border-color: rgba(34, 211, 238, .45); }
+  60% { transform: translateY(0); border-color: rgba(228, 228, 231, .8); }
+}
+
 .install-cursor { animation: cursor-blink 1s steps(1) infinite; }
 .agent-paste { animation: agent-paste 2.4s ease-out both; }
 .demo-pointer { animation: demo-scan 7s ease-in-out infinite; }
 .demo-product { animation: product-pulse 7s ease-in-out infinite; }
+.workflow-glow { animation: workflow-sweep 7s ease-in-out infinite; }
+.workflow-row { animation: workflow-row-pulse 5.5s ease-in-out infinite; }
+.workflow-delay-1 { animation-delay: .2s; }
+.workflow-delay-2 { animation-delay: .8s; }
+.workflow-delay-3 { animation-delay: 1.4s; }
 .demo-delay-2 { animation-delay: .7s; }
 .demo-delay-3 { animation-delay: 1.4s; }
 .demo-delay-4 { animation-delay: 2.1s; }
@@ -97,6 +115,8 @@ body {
   .agent-paste,
   .demo-pointer,
   .demo-product,
+  .workflow-glow,
+  .workflow-row,
   .demo-spinner {
     animation: none;
   }
