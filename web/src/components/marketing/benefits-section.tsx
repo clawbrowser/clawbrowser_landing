@@ -85,6 +85,26 @@ export function BenefitsSection() {
             </svg>
           </Link>
         </div>
+
+        <div className="mt-8 rounded-2xl border border-zinc-200 bg-[#FAFAF8] px-5 py-4 dark:border-zinc-800 dark:bg-zinc-900/80">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-zinc-950 dark:text-zinc-50">Found a bug or rough edge?</p>
+              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                Report it in GitHub Issues so the team can track it properly.
+              </p>
+            </div>
+            <a
+              href="https://github.com/clawbrowser/clawbrowser/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-400 hover:bg-zinc-50 hover:text-zinc-950 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-900 dark:hover:text-white"
+            >
+              GitHub Issues
+              <span aria-hidden="true">→</span>
+            </a>
+          </div>
+        </div>
       </div>
     </section>
   );
