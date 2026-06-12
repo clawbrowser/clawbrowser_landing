@@ -10,6 +10,8 @@ describe("marketing home sections", () => {
     render(<HeroSection />);
     expect(screen.getByRole("heading", { level: 1, name: /let your ai do the browser work/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /copy install prompt/i })).toBeInTheDocument();
+    expect(screen.getByText(/how onboarding works/i)).toBeInTheDocument();
+    expect(screen.getByText(/sign up for clawbrowser/i)).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
   });
 

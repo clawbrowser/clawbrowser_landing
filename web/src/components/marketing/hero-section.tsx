@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { APP_SIGNUP_URL } from "@/lib/links";
 import { INSTALL_AGENT_PROMPT } from "@/lib/install-agent-prompt";
 
 const agentPrompt = INSTALL_AGENT_PROMPT;
@@ -11,6 +12,31 @@ const agents = [
   { name: "Cursor", command: "cursor", color: "bg-violet-500" },
   { name: "Gemini", command: "gemini", color: "bg-blue-500" },
 ];
+
+const supportedAgents = ["Claude Code", "Codex", "Gemini", "Cursor", "Windsurf"];
+
+const onboardingSteps = [
+  {
+    title: "Copy prompt",
+    detail: "Start with the install prompt and give the agent the setup instructions.",
+  },
+  {
+    title: "Paste into your agent",
+    detail: "Any supported coding agent can run the setup flow for you.",
+  },
+  {
+    title: "Sign up for Clawbrowser",
+    detail: "Create an account so the agent has somewhere to fetch your API key from.",
+  },
+  {
+    title: "Generate API key",
+    detail: "Create a fresh key in the dashboard after signup.",
+  },
+  {
+    title: "Give the key to your agent",
+    detail: "The agent finishes setup, verifies the browser, and you are ready to run.",
+  },
+] as const;
 
 function CopyIcon({ checked = false }: { checked?: boolean }) {
   return checked ? (
@@ -95,6 +121,96 @@ export function HeroSection() {
                 <CopyIcon checked={copied} />
                 {copied ? "Prompt copied" : "Copy install prompt"}
               </button>
+
+              <div className={`mt-4 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm transition dark:border-slate-700 dark:bg-[#0e151d] ${copied ? "opacity-70" : ""}`}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold text-zinc-950 dark:text-white">How onboarding works</p>
+                    <p className="mt-1 text-xs text-zinc-500 dark:text-slate-400">Five short steps from prompt to verified browser</p>
+                  </div>
+                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300">
+                    {copied ? "Step 1 done" : "Starts here"}
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  {onboardingSteps.map((step, index) => {
+                    const isFirst = index === 0;
+                    const isSecond = index === 1;
+                    const isThird = index === 2;
+
+                    return (
+                      <div
+                        key={step.title}
+                        className={`rounded-2xl border px-3 py-3 transition ${
+                          isFirst && copied
+                            ? "border-emerald-300 bg-emerald-50/80 dark:border-emerald-400/30 dark:bg-emerald-400/10"
+                            : "border-zinc-200 bg-zinc-50/80 dark:border-slate-700 dark:bg-[#101821]"
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <span
+                            className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                              isFirst && copied
+                                ? "bg-emerald-500 text-white"
+                                : "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
+                            }`}
+                          >
+                            {isFirst && copied ? "✓" : index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
+
+                              {isSecond && (
+                                <div className="group relative">
+                                  <button
+                                    type="button"
+                                    className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300 dark:hover:text-white"
+                                  >
+                                    Supported agents
+                                  </button>
+                                  <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white p-3 text-left opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-[#0b1118]">
+                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-slate-500">
+                                      Verified in docs
+                                    </p>
+                                    <div className="mt-2 flex flex-wrap gap-2">
+                                      {supportedAgents.map((agent) => (
+                                        <span
+                                          key={agent}
+                                          className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300"
+                                        >
+                                          {agent}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {isThird && (
+                                <a
+                                  href={APP_SIGNUP_URL}
+                                  className="inline-flex items-center rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
+                                >
+                                  Sign up
+                                </a>
+                              )}
+
+                              {index === onboardingSteps.length - 1 && (
+                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+                                  Verified
+                                </span>
+                              )}
+                            </div>
+                            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
 
               <div className={`grid transition-all duration-500 ${copied ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} aria-hidden={!copied}>
                 <div className="overflow-hidden">
