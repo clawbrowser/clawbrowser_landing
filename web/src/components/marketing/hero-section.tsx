@@ -141,8 +141,17 @@ export function HeroSection() {
                             </div>
 
                             <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-slate-700 dark:bg-[#101821]">
-                              <div className="flex flex-wrap items-center gap-2 gap-y-3">
+                              <div className={`flex flex-wrap items-center gap-2 gap-y-3 ${isSignupStep ? "justify-between" : ""}`}>
                                 <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
+                                {isSignupStep ? (
+                                  <a
+                                    href={APP_SIGNUP_URL}
+                                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-zinc-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
+                                  >
+                                    Sign up
+                                    <span aria-hidden="true">→</span>
+                                  </a>
+                                ) : null}
                               </div>
                               {isPasteStep ? (
                                 <div className="mt-3 flex flex-wrap gap-2">
@@ -157,18 +166,6 @@ export function HeroSection() {
                                   ))}
                                 </div>
                               ) : null}
-                              {isSignupStep && (
-                                <div className="mt-3 flex items-center justify-between gap-3">
-                                  <p className="text-sm leading-6 text-zinc-500 dark:text-slate-400">Create your Clawbrowser account.</p>
-                                  <a
-                                    href={APP_SIGNUP_URL}
-                                    className="inline-flex min-h-10 items-center gap-2 rounded-full bg-zinc-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
-                                  >
-                                    Create account
-                                    <span aria-hidden="true">→</span>
-                                  </a>
-                                </div>
-                              )}
                               {!isPasteStep && !isSignupStep && step.detail ? (
                                 <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
                               ) : null}
