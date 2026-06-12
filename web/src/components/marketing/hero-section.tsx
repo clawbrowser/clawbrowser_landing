@@ -6,20 +6,9 @@ import { INSTALL_AGENT_PROMPT } from "@/lib/install-agent-prompt";
 
 const agentPrompt = INSTALL_AGENT_PROMPT;
 
-const agents = [
-  { name: "Claude Code", command: "claude", color: "bg-[#D97757]" },
-  { name: "Codex", command: "codex", color: "bg-emerald-500" },
-  { name: "Cursor", command: "cursor", color: "bg-violet-500" },
-  { name: "Gemini", command: "gemini", color: "bg-blue-500" },
-];
-
 const supportedAgents = ["Claude Code", "Codex", "Gemini", "Cursor", "Windsurf"];
 
 const onboardingSteps = [
-  {
-    title: "Copy prompt",
-    detail: "Start with the install prompt and give the agent the setup instructions.",
-  },
   {
     title: "Paste into your agent",
     detail: "Any supported coding agent can run the setup flow for you.",
@@ -53,7 +42,6 @@ function CopyIcon({ checked = false }: { checked?: boolean }) {
 
 export function HeroSection() {
   const [copied, setCopied] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState("Claude Code");
 
   async function copy() {
     setCopied(true);
@@ -122,123 +110,80 @@ export function HeroSection() {
                 {copied ? "Prompt copied" : "Copy install prompt"}
               </button>
 
-              <div className={`mt-4 rounded-2xl border border-zinc-200 bg-white/90 p-4 shadow-sm transition dark:border-slate-700 dark:bg-[#0e151d] ${copied ? "opacity-70" : ""}`}>
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-zinc-950 dark:text-white">How onboarding works</p>
-                    <p className="mt-1 text-xs text-zinc-500 dark:text-slate-400">Five short steps from prompt to verified browser</p>
-                  </div>
-                  <span className="rounded-full border border-zinc-200 bg-zinc-50 px-2.5 py-1 text-[11px] font-medium text-zinc-600 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300">
-                    {copied ? "Step 1 done" : "Starts here"}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {onboardingSteps.map((step, index) => {
-                    const isFirst = index === 0;
-                    const isSecond = index === 1;
-                    const isThird = index === 2;
-
-                    return (
-                      <div
-                        key={step.title}
-                        className={`rounded-2xl border px-3 py-3 transition ${
-                          isFirst && copied
-                            ? "border-emerald-300 bg-emerald-50/80 dark:border-emerald-400/30 dark:bg-emerald-400/10"
-                            : "border-zinc-200 bg-zinc-50/80 dark:border-slate-700 dark:bg-[#101821]"
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <span
-                            className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
-                              isFirst && copied
-                                ? "bg-emerald-500 text-white"
-                                : "bg-cyan-100 text-cyan-700 dark:bg-cyan-400/15 dark:text-cyan-300"
-                            }`}
-                          >
-                            {isFirst && copied ? "✓" : index + 1}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
-
-                              {isSecond && (
-                                <div className="group relative">
-                                  <button
-                                    type="button"
-                                    className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300 dark:hover:text-white"
-                                  >
-                                    Supported agents
-                                  </button>
-                                  <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white p-3 text-left opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-[#0b1118]">
-                                    <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-zinc-400 dark:text-slate-500">
-                                      Verified in docs
-                                    </p>
-                                    <div className="mt-2 flex flex-wrap gap-2">
-                                      {supportedAgents.map((agent) => (
-                                        <span
-                                          key={agent}
-                                          className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300"
-                                        >
-                                          {agent}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {isThird && (
-                                <a
-                                  href={APP_SIGNUP_URL}
-                                  className="inline-flex items-center rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
-                                >
-                                  Sign up
-                                </a>
-                              )}
-
-                              {index === onboardingSteps.length - 1 && (
-                                <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
-                                  Verified
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
               <div className={`grid transition-all duration-500 ${copied ? "mt-5 grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`} aria-hidden={!copied}>
                 <div className="overflow-hidden">
-                  <div className="border-t border-zinc-200 pt-5 dark:border-slate-700">
-                    <p className="text-sm font-semibold text-zinc-900 dark:text-white">Now paste it into your agent</p>
-                    <div className="mt-3 grid grid-cols-2 gap-2">
-                      {agents.map((agent) => (
-                        <button key={agent.name} type="button" onClick={() => setSelectedAgent(agent.name)} className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-sm font-medium transition ${selectedAgent === agent.name ? "border-cyan-400 bg-cyan-50 text-zinc-950 dark:border-cyan-300 dark:bg-cyan-300 dark:text-slate-950" : "border-zinc-200 text-zinc-600 hover:border-zinc-300 dark:border-slate-700 dark:text-slate-200 dark:hover:border-slate-500"}`}>
-                          <span className={`h-2.5 w-2.5 rounded-full ${agent.color}`} />
-                          {agent.name}
-                        </button>
-                      ))}
-                    </div>
-                    <div key={selectedAgent} className="mt-3 rounded-xl bg-zinc-950 px-4 py-3 font-mono text-xs text-zinc-300 dark:bg-black">
-                      <div className="flex items-center gap-3">
-                        <span className="text-cyan-400">$</span>
-                        <span>{agents.find((agent) => agent.name === selectedAgent)?.command}</span>
-                        <span className="install-cursor h-4 w-1.5 bg-cyan-300" />
+                  <div className="pt-5">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-500 text-sm font-bold text-white shadow-sm">
+                        ✓
                       </div>
-                      <div className="agent-paste mt-2 flex gap-3 border-t border-white/10 pt-2 text-slate-400">
-                        <span className="text-violet-400">›</span>
-                        <span className="truncate">Install Clawbrowser and clawctl by following...</span>
-                        <span className="ml-auto text-emerald-400">pasted</span>
-                      </div>
+                      <div className="h-px flex-1 bg-gradient-to-r from-emerald-400 via-cyan-300 to-cyan-200 dark:from-emerald-400 dark:via-cyan-400 dark:to-slate-700" />
                     </div>
-                    <a href="https://discord.gg/mVWydaDK2N" target="_blank" rel="noopener noreferrer" className="mt-4 block text-center text-sm font-medium text-zinc-500 underline decoration-zinc-300 underline-offset-4 transition hover:text-zinc-900 dark:text-slate-400 dark:decoration-slate-600 dark:hover:text-white">
-                      Need help? Join the Discord
-                    </a>
+
+                    <div className="mt-4 space-y-4">
+                      {onboardingSteps.map((step, index) => {
+                        const isPasteStep = index === 0;
+                        const isSignupStep = index === 1;
+                        const isFinalStep = index === onboardingSteps.length - 1;
+
+                        return (
+                          <div key={step.title} className="relative pl-10">
+                            {index !== onboardingSteps.length - 1 && (
+                              <div className="absolute left-[15px] top-8 h-[calc(100%+0.75rem)] w-px bg-zinc-200 dark:bg-slate-700" />
+                            )}
+
+                            <div className="absolute left-0 top-1.5 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                              {index + 2}
+                            </div>
+
+                            <div className="rounded-2xl border border-zinc-200 bg-zinc-50/80 px-4 py-3 dark:border-slate-700 dark:bg-[#101821]">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="text-sm font-semibold text-zinc-900 dark:text-white">{step.title}</p>
+
+                                {isPasteStep && (
+                                  <div className="group relative">
+                                    <button
+                                      type="button"
+                                      className="inline-flex items-center rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[11px] font-medium text-zinc-600 transition hover:border-zinc-300 hover:text-zinc-900 dark:border-slate-700 dark:bg-[#0b1118] dark:text-slate-300 dark:hover:text-white"
+                                    >
+                                      Supported agents
+                                    </button>
+                                    <div className="pointer-events-none absolute left-0 top-full z-20 mt-2 w-64 rounded-2xl border border-zinc-200 bg-white p-3 text-left opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100 dark:border-slate-700 dark:bg-[#0b1118]">
+                                      <div className="flex flex-wrap gap-2">
+                                        {supportedAgents.map((agent) => (
+                                          <span
+                                            key={agent}
+                                            className="rounded-full border border-cyan-200 bg-cyan-50 px-2.5 py-1 text-[11px] font-medium text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300"
+                                          >
+                                            {agent}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {isSignupStep && (
+                                  <a
+                                    href={APP_SIGNUP_URL}
+                                    className="inline-flex items-center rounded-full bg-zinc-950 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
+                                  >
+                                    Sign up
+                                  </a>
+                                )}
+
+                                {isFinalStep && (
+                                  <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700 dark:border-emerald-400/20 dark:bg-emerald-400/10 dark:text-emerald-300">
+                                    Verified
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>

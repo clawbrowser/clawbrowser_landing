@@ -10,12 +10,11 @@ describe("marketing home sections", () => {
     render(<HeroSection />);
     expect(screen.getByRole("heading", { level: 1, name: /let your ai do the browser work/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /copy install prompt/i })).toBeInTheDocument();
-    expect(screen.getByText(/how onboarding works/i)).toBeInTheDocument();
-    expect(screen.getByText(/sign up for clawbrowser/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /sign up/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
   });
 
-  it("reveals agent choices and Discord after copying", async () => {
+  it("reveals onboarding steps after copying", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(<HeroSection />);
@@ -23,9 +22,9 @@ describe("marketing home sections", () => {
     fireEvent.click(screen.getByRole("button", { name: /copy install prompt/i }));
 
     expect(writeText).toHaveBeenCalledOnce();
-    expect(await screen.findByRole("button", { name: /claude code/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /codex/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /join the discord/i })).toHaveAttribute("href", "https://discord.gg/mVWydaDK2N");
+    expect(await screen.findByText(/paste into your agent/i)).toBeInTheDocument();
+    expect(screen.getByText(/generate api key/i)).toBeInTheDocument();
+    expect(screen.getByText(/give the key to your agent/i)).toBeInTheDocument();
   });
 
   it("shows a concrete browser-work example", () => {
