@@ -1,51 +1,29 @@
 export function WebsiteJsonLd() {
   return (
-    <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "WebSite",
+    <script
+      type="application/ld+json"
+      dangerouslySetInnerHTML={{
+        __html: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: "Clawbrowser",
+          url: "https://clawbrowser.ai",
+          description: "Chromium-based browser with managed sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agent automation.",
+          publisher: {
+            "@type": "Organization",
             name: "Clawbrowser",
             url: "https://clawbrowser.ai",
-            description: "Chromium-based browser with managed sessions, fingerprint profiles, and residential/datacenter proxy routing for AI agent automation.",
-            publisher: {
-              "@type": "Organization",
-              name: "Clawbrowser",
-              url: "https://clawbrowser.ai",
-              logo: { "@type": "ImageObject", url: "https://clawbrowser.ai/side-bite.svg" },
-              sameAs: ["https://github.com/clawbrowser/clawbrowser"],
-            },
-            potentialAction: {
-              "@type": "SearchAction",
-              target: { "@type": "EntryPoint", urlTemplate: "https://clawbrowser.ai/blog?q={search_term_string}" },
-              "query-input": "required name=search_term_string",
-            },
-          }),
-        }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "SoftwareApplication",
-            name: "Clawbrowser",
-            applicationCategory: "BrowserApplication",
-            operatingSystem: "macOS, Linux, Windows",
-            description:
-              "A real browser for AI agents with managed sessions, fingerprint profiles, and residential or datacenter proxy routing.",
-            url: "https://clawbrowser.ai",
-            offers: {
-              "@type": "Offer",
-              price: "0",
-              priceCurrency: "USD",
-            },
-          }),
-        }}
-      />
-    </>
+            logo: { "@type": "ImageObject", url: "https://clawbrowser.ai/side-bite.svg" },
+            sameAs: ["https://github.com/clawbrowser/clawbrowser"],
+          },
+          potentialAction: {
+            "@type": "SearchAction",
+            target: { "@type": "EntryPoint", urlTemplate: "https://clawbrowser.ai/blog?q={search_term_string}" },
+            "query-input": "required name=search_term_string",
+          },
+        }),
+      }}
+    />
   );
 }
 

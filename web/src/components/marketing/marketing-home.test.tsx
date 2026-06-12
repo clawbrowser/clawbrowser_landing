@@ -6,23 +6,24 @@ import { UseCasesSection } from "./use-cases-section";
 import { FeaturesSection } from "./features-section";
 
 describe("marketing home sections", () => {
-  it("gives visitors one clear primary action", () => {
+  it("gives visitors one clear install action", () => {
     render(<HeroSection />);
-    expect(screen.getByRole("heading", { level: 1, name: /give your agent a browser that does not get blocked/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /get started free/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /copy prompt/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: /let your ai do the browser work/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /copy install prompt/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /download/i })).not.toBeInTheDocument();
   });
 
-  it("shows paste instructions after copying", async () => {
+  it("reveals agent choices and Discord after copying", async () => {
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", { value: { writeText }, configurable: true });
     render(<HeroSection />);
 
-    fireEvent.click(screen.getByRole("button", { name: /copy prompt/i }));
+    fireEvent.click(screen.getByRole("button", { name: /copy install prompt/i }));
 
     expect(writeText).toHaveBeenCalledOnce();
-    expect(await screen.findByText(/now paste it into your agent/i)).toBeInTheDocument();
-    expect(screen.getByText(/paste into claude code, codex, cursor, or gemini/i)).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /claude code/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /codex/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /join the discord/i })).toHaveAttribute("href", "https://discord.gg/mVWydaDK2N");
   });
 
   it("shows a concrete browser-work example", () => {
