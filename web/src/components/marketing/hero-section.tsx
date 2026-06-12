@@ -19,16 +19,16 @@ const onboardingSteps = [
     detail: "",
   },
   {
-    title: "Sign up for Clawbrowser",
+    title: "Create account",
     detail: "",
   },
   {
     title: "Generate API key",
-    detail: "In the dashboard.",
+    detail: "In dashboard.",
   },
   {
     title: "Give the key to your agent",
-    detail: "Finish setup and verify the browser.",
+    detail: "Finish setup.",
   },
 ] as const;
 
@@ -136,7 +136,7 @@ export function HeroSection() {
                               <div className="absolute left-6 top-1/2 h-[calc(100%+1rem)] w-px -translate-x-1/2 bg-zinc-200 dark:bg-slate-700" />
                             )}
 
-                            <div className="relative z-10 flex h-8 w-8 items-center justify-center self-center justify-self-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 dark:border-cyan-400/20 dark:bg-cyan-400/10 dark:text-cyan-300">
+                            <div className="relative z-10 flex h-8 w-8 items-center justify-center self-center justify-self-center rounded-full border border-cyan-200 bg-cyan-50 text-[11px] font-semibold text-cyan-800 ring-4 ring-white dark:border-cyan-400/20 dark:bg-[#0b1118] dark:text-cyan-300 dark:ring-[#0b1118]">
                               {index + 2}
                             </div>
 
@@ -156,20 +156,22 @@ export function HeroSection() {
                                     </span>
                                   ))}
                                 </div>
-                              ) : step.detail ? (
-                                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
                               ) : null}
                               {isSignupStep && (
-                                <div className="mt-3">
+                                <div className="mt-3 flex items-center justify-between gap-3">
+                                  <p className="text-sm leading-6 text-zinc-500 dark:text-slate-400">Create your Clawbrowser account.</p>
                                   <a
                                     href={APP_SIGNUP_URL}
                                     className="inline-flex min-h-10 items-center gap-2 rounded-full bg-zinc-950 px-5 py-2 text-sm font-medium text-white transition hover:bg-zinc-800 dark:bg-white dark:text-slate-950 dark:hover:bg-zinc-200"
                                   >
-                                    Sign up
+                                    Create account
                                     <span aria-hidden="true">→</span>
                                   </a>
                                 </div>
                               )}
+                              {!isPasteStep && !isSignupStep && step.detail ? (
+                                <p className="mt-1 text-sm leading-6 text-zinc-500 dark:text-slate-400">{step.detail}</p>
+                              ) : null}
                             </div>
                           </div>
                         );

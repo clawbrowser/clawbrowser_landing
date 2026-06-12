@@ -51,7 +51,20 @@ export function ProductDemoSection() {
                   </div>
                 ))}
               </div>
-              <div className="demo-pointer absolute left-[22%] top-[34%] h-5 w-5 rotate-[-20deg] text-zinc-950">◆</div>
+              <svg
+                className="demo-pointer absolute left-[22%] top-[34%] h-6 w-6"
+                viewBox="0 0 24 24"
+                fill="none"
+                aria-hidden="true"
+              >
+                <path
+                  d="M5 3.5L18 15.5L12.6 15.8L15.3 21L12.3 22.5L9.6 17.2L6.2 21.2L5 3.5Z"
+                  fill="#111827"
+                  stroke="#ffffff"
+                  strokeWidth="1.8"
+                  strokeLinejoin="round"
+                />
+              </svg>
             </div>
             <div className="bg-zinc-950 p-5 text-white dark:bg-[#05080c]">
               <div className="flex items-center gap-3 border-b border-white/10 pb-4">
