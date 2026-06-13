@@ -60,8 +60,8 @@ const streaming: Demo[] = [
 ];
 
 const sectionLinks = [
-  { href: "#use-cases", label: "Use Cases" },
   { href: "#installation", label: "Installation" },
+  { href: "#use-cases", label: "Use Cases" },
   { href: "#capabilities", label: "Capabilities" },
   { href: "#streaming", label: "Streaming" },
 ];
@@ -160,8 +160,8 @@ export default function InternalDemosPage() {
           </div>
         </header>
 
-        <DemoSection id="use-cases" title="Use Cases" demos={useCases} />
         <DemoSection id="installation" title="Installation" demos={installation} />
+        <DemoSection id="use-cases" title="Use Cases" demos={useCases} />
         <DemoSection id="capabilities" title="Capabilities" demos={capabilities} columns={3} />
         <DemoSection id="streaming" title="Streaming" demos={streaming} columns={1} />
       </main>
