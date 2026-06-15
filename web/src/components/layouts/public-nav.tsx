@@ -212,7 +212,7 @@ export function PublicNav() {
               </span>
             </a>
             <a
-              href="https://discord.gg/mVWydaDK2N"
+              href="https://discord.gg/CK62brtKhe"
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Join our Discord"
@@ -362,7 +362,7 @@ export function PublicNav() {
                 GitHub
               </a>
               <a
-                href="https://discord.gg/mVWydaDK2N"
+                href="https://discord.gg/CK62brtKhe"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setOpen(false)}
