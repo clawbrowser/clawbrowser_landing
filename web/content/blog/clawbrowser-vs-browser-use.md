@@ -4,7 +4,7 @@ excerpt: "A direct comparison of two products built for AI agents on the web —
 date: "2026-06-22"
 author: "Clawbrowser Team"
 tags: ["comparison", "agents", "browser-use", "anti-detection"]
-coverImage: "/blog/clawbrowser-vs-browser-use-light-2.png"
+coverImageLight: "/blog/clawbrowser-vs-browser-use-light-2.png"
 coverImageDark: "/blog/clawbrowser-vs-browser-use-dark-2.png"
 ---
 
