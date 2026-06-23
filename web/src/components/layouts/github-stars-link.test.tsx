@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { GitHubStarsLink } from "./github-stars-link";
 
 describe("GitHubStarsLink", () => {
@@ -15,6 +15,9 @@ describe("GitHubStarsLink", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<GitHubStarsLink />);
+
+    const loadingLink = screen.getByRole("link", { name: "Clawbrowser on GitHub, stars loading" });
+    expect(within(loadingLink).queryByText("6")).not.toBeInTheDocument();
 
     expect(await screen.findByRole("link", { name: "Clawbrowser on GitHub, 7 stars" })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith(

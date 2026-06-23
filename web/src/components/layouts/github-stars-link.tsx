@@ -4,11 +4,10 @@ import { useEffect, useState } from "react";
 
 const GITHUB_REPOSITORY_URL = "https://github.com/clawbrowser/clawbrowser";
 const GITHUB_REPOSITORY_API_URL = "https://api.github.com/repos/clawbrowser/clawbrowser";
-const FALLBACK_STAR_COUNT = 6;
 const REFRESH_INTERVAL_MS = 5 * 60 * 1000;
 
 export function GitHubStarsLink() {
-  const [starCount, setStarCount] = useState(FALLBACK_STAR_COUNT);
+  const [starCount, setStarCount] = useState<number | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -56,7 +55,8 @@ export function GitHubStarsLink() {
     };
   }, []);
 
-  const label = `Clawbrowser on GitHub, ${starCount} ${starCount === 1 ? "star" : "stars"}`;
+  const starLabel = starCount === null ? "stars loading" : `${starCount} ${starCount === 1 ? "star" : "stars"}`;
+  const label = `Clawbrowser on GitHub, ${starLabel}`;
 
   return (
     <a
@@ -64,7 +64,7 @@ export function GitHubStarsLink() {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      title={`GitHub · ${starCount} ${starCount === 1 ? "star" : "stars"}`}
+      title={starCount === null ? "GitHub" : `GitHub · ${starLabel}`}
       className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 text-sm font-medium text-zinc-700 transition-colors hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-950 dark:border-slate-700 dark:bg-[#101821] dark:text-slate-200 dark:hover:border-slate-600 dark:hover:bg-slate-800 dark:hover:text-white"
     >
       <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="text-zinc-700 dark:text-slate-200">
@@ -74,7 +74,7 @@ export function GitHubStarsLink() {
         <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M12 2.75l2.91 5.9 6.51.95-4.71 4.6 1.11 6.48L12 17.57l-5.82 3.06 1.11-6.48-4.71-4.6 6.51-.95L12 2.75z" />
         </svg>
-        <span>{starCount}</span>
+        <span className="min-w-[1ch] text-left">{starCount ?? ""}</span>
       </span>
     </a>
   );
